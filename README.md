@@ -1,2 +1,3 @@
-# GoogleTranslateOverlay
-Google Translator Overaly for https://github.com/DavidVentura/offline-translator
+# TranslateOverlay
+
+Project generated for Translate overlay functionality. Open in Android Studio to build.
