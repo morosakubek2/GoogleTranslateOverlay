@@ -16,10 +16,10 @@ android {
 
     signingConfigs {
         release {
-            storeFile file('translateoverlay.jks')
+            storeFile file(System.getenv('KEYSTORE_PATH') ?: 'translateoverlay.jks') // Dynamiczna ścieżka
             storePassword System.getenv('KEYSTORE_PASSWORD')
             keyAlias 'translateoverlay'
-            keyPassword System.getenv('KEYSTORE_PASSWORD')
+            keyPassword System.getenv('KEY_PASSWORD')
         }
     }
 
