@@ -75,11 +75,3 @@ jobs:
           name: GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-apk
           path: app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
           retention-days: 30
-
-      - name: Notify on failure
-        if: failure()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: failure
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
