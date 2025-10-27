@@ -1,0 +1,106 @@
+name: Build and Release GoogleTranslateOverlay APK
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  release:
+    types: [published]  # Uruchamia się przy tworzeniu tagu/release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Dla uploadu assetów do release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Dla tagów i historii
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Generate keystore
+        run: |
+          keytool -genkey -v -keystore translateoverlay.jks \
+            -alias translateoverlay \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=TranslateOverlay, OU=Unknown, O=Unknown, L=Unknown, S=Unknown, C=PL" \
+            -storepass ${{ secrets.KEYSTORE_PASSWORD }} \
+            -keypass ${{ secrets.KEY_PASSWORD }}
+          echo "KEYSTORE_PATH=$(pwd)/translateoverlay.jks" >> $GITHUB_ENV
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Build with Gradle
+        run: ./gradlew assembleRelease
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m"
+          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Get version from build.gradle
+        id: version
+        run: |
+          VERSION_NAME=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '"')
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+
+      - name: Align APK
+        run: |
+          zipalign -v -p 4 app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/app-release-aligned.apk
+
+      - name: Sign APK
+        run: |
+          apksigner sign --ks translateoverlay.jks \
+            --ks-key-alias translateoverlay \
+            --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
+            --key-pass pass:${{ secrets.KEY_PASSWORD }} \
+            --out app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk \
+            app/build/outputs/apk/release/app-release-aligned.apk
+          apksigner verify app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload APK as artifact (for PRs and push)
+        uses: actions/upload-artifact@v4
+        with:
+          name: GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-apk
+          path: app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
+          retention-days: 30
+
+      - name: Create GitHub Release and upload APK
+        if: github.event_name == 'release' && github.event.action == 'published'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
+          tag_name: ${{ github.ref }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            Auto-generated release for GoogleTranslateOverlay.
+            - APK: GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
+            - Changelog: See commit history.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify on failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
