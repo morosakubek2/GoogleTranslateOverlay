@@ -17,20 +17,20 @@ android {
     signingConfigs {
         release {
             storeFile file('translateoverlay.jks')
-            storePassword 'morosakubek@o2.pl'
+            storePassword System.getenv('KEYSTORE_PASSWORD')
             keyAlias 'translateoverlay'
-            keyPassword 'morosakubek@o2.pl'
+            keyPassword System.getenv('KEYSTORE_PASSWORD')
         }
     }
 
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            minifyEnabled true // Włącz ProGuard dla release
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
-            minifyEnabled false // Bez ProGuard w debug
+            minifyEnabled false
         }
     }
 
