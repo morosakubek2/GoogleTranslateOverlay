@@ -1,14 +1,7 @@
-name: Build and Release GoogleTranslateOverlay APK
+name: Manual Build and Release GoogleTranslateOverlay APK
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-  release:
-    types: [published]  # Uruchamia się przy tworzeniu tagu/release
+  workflow_dispatch:  # Ręczne uruchamianie
 
 jobs:
   build:
@@ -76,26 +69,12 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Upload APK as artifact (for PRs and push)
+      - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
           name: GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-apk
           path: app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
           retention-days: 30
-
-      - name: Create GitHub Release and upload APK
-        if: github.event_name == 'release' && github.event.action == 'published'
-        uses: softprops/action-gh-release@v1
-        with:
-          files: app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
-          tag_name: ${{ github.ref }}
-          name: Release ${{ github.ref_name }}
-          body: |
-            Auto-generated release for GoogleTranslateOverlay.
-            - APK: GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
-            - Changelog: See commit history.
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Notify on failure
         if: failure()
