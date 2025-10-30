@@ -1,6 +1,5 @@
 plugins {
     id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
 }
 
 android {
@@ -11,16 +10,14 @@ android {
         minSdk 21
         targetSdk 34
         versionCode 2
-        versionName "1.1"
+        versionName "1.2"
     }
 
     buildTypes {
         release {
             minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-        debug {
-            minifyEnabled false
         }
     }
 
@@ -29,13 +26,5 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
-
     namespace 'com.google.android.apps.translate'
-}
-
-dependencies {
-    implementation 'androidx.appcompat:appcompat:1.6.1'
 }
