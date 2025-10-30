@@ -1,4 +1,4 @@
-name: Manual Build APK
+name: Manual Build & Release APK
 
 on:
   workflow_dispatch:
@@ -6,6 +6,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Potrzebne do tworzenia release
 
     steps:
       - name: Checkout
@@ -61,8 +63,17 @@ jobs:
             --out GoogleTranslateOverlay-v${{ env.VER }}-signed.apk \
             aligned.apk
 
-      - name: Upload APK
+      - name: Upload to Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: APK
           path: GoogleTranslateOverlay-v${{ env.VER }}-signed.apk
+
+      - name: Create GitHub Release
+        run: |
+          gh release create "v${{ env.VER }}" \
+            --title "GoogleTranslateOverlay v${{ env.VER }}" \
+            --notes "Automatyczny build z GitHub Actions" \
+            GoogleTranslateOverlay-v${{ env.VER }}-signed.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
