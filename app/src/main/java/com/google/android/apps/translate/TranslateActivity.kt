@@ -1,26 +1,29 @@
 package com.google.android.apps.translate
 
-import android.app.Service
+import android.app.Activity
 import android.content.ComponentName
 import android.content.Intent
-import android.os.IBinder
+import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 
-class TranslateService : Service() {
-
+class TranslateActivity : Activity() {
     companion object {
         private const val TAG = "TranslateOverlay"
         private const val TARGET_PACKAGE = "dev.davidv.translator"
         private const val TARGET_ACTIVITY = ".ProcessTextActivity"
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Redukcja migotania – od razu przekieruj
+        handleIntent(intent)
+        finish()
+    }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
         intent?.let { handleIntent(it) }
-        stopSelf() // Zakończ usługę
-        return START_NOT_STICKY
     }
 
     private fun handleIntent(intent: Intent) {
@@ -29,6 +32,7 @@ class TranslateService : Service() {
         val newIntent = Intent(Intent.ACTION_PROCESS_TEXT).apply {
             setComponent(ComponentName(TARGET_PACKAGE, TARGET_PACKAGE + TARGET_ACTIVITY))
             setType("text/plain")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)  // Bez migotania
         }
 
         when (action) {
@@ -47,20 +51,18 @@ class TranslateService : Service() {
                 } else return
             }
             else -> {
-                text = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT)
-                    ?: intent.getStringExtra(Intent.EXTRA_TEXT)
+                text = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT) ?: intent.getStringExtra(Intent.EXTRA_TEXT)
                 Log.d(TAG, "Generic: $text")
                 newIntent.putExtra(Intent.EXTRA_PROCESS_TEXT, text)
             }
         }
 
         try {
-            newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(newIntent)
-            Log.d(TAG, "Started translator")
+            Log.d(TAG, "Redirected to $TARGET_PACKAGE")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed: ${e.message}")
-            Toast.makeText(this, "Nie można otworzyć tłumacza", Toast.LENGTH_SHORT).show()
+            Log.e(TAG, "Failed to start $TARGET_PACKAGE: ${e.message}")
+            Toast.makeText(this, getString(R.string.error_cannot_open_translator), Toast.LENGTH_SHORT).show()
         }
     }
 }
