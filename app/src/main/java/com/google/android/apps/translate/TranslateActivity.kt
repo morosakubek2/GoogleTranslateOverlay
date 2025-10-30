@@ -1,67 +1,66 @@
 package com.google.android.apps.translate
 
-import android.app.Activity
+import android.app.Service
 import android.content.ComponentName
 import android.content.Intent
-import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import android.widget.Toast
-import com.google.android.apps.translate.R
 
-class TranslateActivity : Activity() {
+class TranslateService : Service() {
+
     companion object {
         private const val TAG = "TranslateOverlay"
         private const val TARGET_PACKAGE = "dev.davidv.translator"
         private const val TARGET_ACTIVITY = ".ProcessTextActivity"
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        handleIntent(intent)
-        finish() // Zamknij aktywność po przekierowaniu
-    }
+    override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         intent?.let { handleIntent(it) }
+        stopSelf() // Zakończ usługę
+        return START_NOT_STICKY
     }
 
     private fun handleIntent(intent: Intent) {
         val action = intent.action
         val text: String?
-        val newIntent = Intent(Intent.ACTION_PROCESS_TEXT)
-        newIntent.setComponent(ComponentName(TARGET_PACKAGE, TARGET_PACKAGE + TARGET_ACTIVITY))
-        newIntent.setType("text/plain")
+        val newIntent = Intent(Intent.ACTION_PROCESS_TEXT).apply {
+            setComponent(ComponentName(TARGET_PACKAGE, TARGET_PACKAGE + TARGET_ACTIVITY))
+            setType("text/plain")
+        }
 
-        // Obsługa PROCESS_TEXT
-        if (Intent.ACTION_PROCESS_TEXT == action) {
-            text = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT)
-            val readonly = intent.getBooleanExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, false)
-            Log.d(TAG, "Received PROCESS_TEXT: text=$text, readonly=$readonly")
-            newIntent.putExtra(Intent.EXTRA_PROCESS_TEXT, text)
-            if (readonly) {
-                newIntent.putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true)
+        when (action) {
+            Intent.ACTION_PROCESS_TEXT -> {
+                text = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT)
+                val readonly = intent.getBooleanExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, false)
+                Log.d(TAG, "PROCESS_TEXT: $text, readonly=$readonly")
+                newIntent.putExtra(Intent.EXTRA_PROCESS_TEXT, text)
+                if (readonly) newIntent.putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true)
             }
-        }
-        // Obsługa ACTION_SEND
-        else if (Intent.ACTION_SEND == action && "text/plain" == intent.type) {
-            text = intent.getStringExtra(Intent.EXTRA_TEXT)
-            Log.d(TAG, "Received SEND: text=$text")
-            newIntent.putExtra(Intent.EXTRA_PROCESS_TEXT, text)
-        }
-        // Obsługa jawnych Intentów do TranslateActivity
-        else {
-            text = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT) ?: intent.getStringExtra(Intent.EXTRA_TEXT)
-            Log.d(TAG, "Received generic intent: text=$text, action=$action, component=${intent.component}")
-            newIntent.putExtra(Intent.EXTRA_PROCESS_TEXT, text)
+            Intent.ACTION_SEND -> {
+                if ("text/plain" == intent.type) {
+                    text = intent.getStringExtra(Intent.EXTRA_TEXT)
+                    Log.d(TAG, "SEND: $text")
+                    newIntent.putExtra(Intent.EXTRA_PROCESS_TEXT, text)
+                } else return
+            }
+            else -> {
+                text = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT)
+                    ?: intent.getStringExtra(Intent.EXTRA_TEXT)
+                Log.d(TAG, "Generic: $text")
+                newIntent.putExtra(Intent.EXTRA_PROCESS_TEXT, text)
+            }
         }
 
         try {
+            newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(newIntent)
-            Log.d(TAG, "Redirected to $TARGET_PACKAGE")
+            Log.d(TAG, "Started translator")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start $TARGET_PACKAGE: ${e.message}")
-            Toast.makeText(this, getString(R.string.error_cannot_open_translator), Toast.LENGTH_SHORT).show()
+            Log.e(TAG, "Failed: ${e.message}")
+            Toast.makeText(this, "Nie można otworzyć tłumacza", Toast.LENGTH_SHORT).show()
         }
     }
 }
