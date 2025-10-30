@@ -10,8 +10,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -27,59 +25,53 @@ jobs:
           packages: 'build-tools;34.0.0 platform-tools platforms;android-34'
 
       - name: Add build-tools to PATH
-        run: |
-          echo "$ANDROID_HOME/build-tools/34.0.0" >> $GITHUB_PATH
+        run: echo "$ANDROID_HOME/build-tools/34.0.0" >> $GITHUB_PATH
 
       - name: Generate Gradle Wrapper
         run: |
           gradle wrapper --gradle-version 9.1.0
           chmod +x ./gradlew
 
-      - name: Generate keystore
-        run: |
-          keytool -genkey -v -keystore translateoverlay.jks \
-            -alias translateoverlay \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=TranslateOverlay, OU=Unknown, O=Unknown, L=Unknown, S=Unknown, C=PL" \
-            -storepass morosakubek@o2.pl \
-            -keypass morosakubek@o2.pl
-          echo "KEYSTORE_PATH=$(pwd)/translateoverlay.jks" >> $GITHUB_ENV
+      - name: Build unsigned APK
+        run: ./gradlew assembleRelease --stacktrace --info
 
-      - name: Build with Gradle
+      - name: Debug: Check APK
         run: |
-          ./gradlew assembleRelease --stacktrace --info
-        env:
-          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
-          KEYSTORE_PASSWORD: morosakubek@o2.pl
-          KEY_PASSWORD: morosakubek@o2.pl
+          ls -la app/build/outputs/apk/release/ || exit 1
+          if [ ! -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            echo "ERROR: unsigned APK not found!"
+            exit 1
+          fi
 
       - name: Get version
         run: |
-          VERSION_NAME=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '"')
-          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+          VERSION=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '"')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Generate keystore
+        run: |
+          keytool -genkey -v -keystore app.jks -alias app \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Test" -storepass morosakubek@o2.pl -keypass morosakubek@o2.pl
 
       - name: Align APK
         run: |
           zipalign -v -p 4 \
             app/build/outputs/apk/release/app-release-unsigned.apk \
-            app/build/outputs/apk/release/app-release-aligned.apk
+            aligned.apk
 
       - name: Sign APK
         run: |
           apksigner sign \
-            --ks translateoverlay.jks \
-            --ks-key-alias translateoverlay \
+            --ks app.jks \
+            --ks-key-alias app \
             --ks-pass pass:morosakubek@o2.pl \
             --key-pass pass:morosakubek@o2.pl \
-            --out app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk \
-            app/build/outputs/apk/release/app-release-aligned.apk
-
-          apksigner verify \
-            app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
+            --out GoogleTranslateOverlay-v${{ env.VERSION }}-signed.apk \
+            aligned.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-apk
-          path: app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
-          retention-days: 30
+          name: APK
+          path: GoogleTranslateOverlay-v${{ env.VERSION }}-signed.apk
