@@ -1,7 +1,7 @@
 name: Manual Build and Release GoogleTranslateOverlay APK
 
 on:
-  workflow_dispatch:  # TYLKO RĘCZNIE
+  workflow_dispatch:
 
 jobs:
   build:
@@ -65,11 +65,11 @@ jobs:
 
       - name: Debug: Check unsigned APK
         run: |
-          ls -la app/build/outputs/apk/release/ || echo "No APK directory"
+          ls -la app/build/outputs/apk/release/ || echo "No release dir"
           if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
             echo "Unsigned APK found!"
           else
-            echo "ERROR: Unsigned APK not generated!"
+            echo "ERROR: Unsigned APK missing!"
             exit 1
           fi
 
