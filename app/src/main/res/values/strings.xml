@@ -1,9 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name">Translate Overlay</string>
     <resources>
     <string name="app_name">Google Translate</string>
     <string name="error_cannot_open_translator">Cannot open translator</string>
     <string name="error_unsupported_action">Unsupported action</string>
 </resources>
-</xml>
