@@ -6,7 +6,6 @@
 
     <queries>
         <package android:name="dev.davidv.translator" />
-        <package android:name="com.onyx.neverland.alreaderpro" />
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT" />
             <data android:mimeType="text/plain" />
@@ -18,16 +17,16 @@
     </queries>
 
     <application
-        android:allowBackup="true"
-        android:label="@string/app_name"
+        android:allowBackup="false"
+        android:label="Google Translate"
         android:icon="@android:mipmap/sym_def_app_icon"
-        android:theme="@style/Theme.AppCompat.NoActionBar">
+        android:theme="@android:style/Theme.Translucent.NoTitleBar"
+        android:usesCleartextTraffic="false">
 
         <activity
             android:name=".TranslateActivity"
             android:exported="true"
-            android:launchMode="singleTask"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            android:launchMode="singleTask">
             <intent-filter android:priority="9999">
                 <action android:name="android.intent.action.PROCESS_TEXT" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -38,7 +37,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
-            <!-- Dodaj to do wykrywany jako "uruchamialny" słownik -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
