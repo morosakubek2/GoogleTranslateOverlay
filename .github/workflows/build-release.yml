@@ -1,19 +1,19 @@
 name: Manual Build and Release GoogleTranslateOverlay APK
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Ręczne uruchamianie
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write  # Dla uploadu assetów do release
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Dla tagów i historii
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -45,16 +45,19 @@ jobs:
             -dname "CN=TranslateOverlay, OU=Unknown, O=Unknown, L=Unknown, S=Unknown, C=PL" \
             -storepass morosakubek@o2.pl \
             -keypass morosakubek@o2.pl
-          echo "KEYSTORE_PATH=$(pwd)/translateoverlay.jks" >> $GITHUB_ENV
+          echo "KEYSTORE_PATH=$(pwd)/translateoverflow.jks" >> $GITHUB_ENV
+        env:
+          KEYSTORE_PASSWORD: morosakubek@o2.pl
+          KEY_PASSWORD: morosakubek@o2.pl
 
-      - name: Debug: List files and keystore
+      - name: Debug: Verify keystore and tools
         run: |
-          ls -la
-          ls -la app/build/outputs/apk/release/ || echo "No output yet"
-          keytool -list -v -keystore translateoverlay.jks -storepass morosakubek@o2.pl | head -10
+          ls -la translateoverflow.jks
+          keytool -list -v -keystore translateoverflow.jks -storepass morosakubek@o2.pl | head -10
+          which zipalign
+          which apksigner
 
-      # BUDUJ TYLKO UNSIGNED APK
-      - name: Build unsigned APK
+      - name: Build with Gradle
         run: |
           ./gradlew assembleRelease --stacktrace --info
         env:
@@ -63,45 +66,50 @@ jobs:
           KEYSTORE_PASSWORD: morosakubek@o2.pl
           KEY_PASSWORD: morosakubek@o2.pl
 
-      # DEBUG: Sprawdź, czy APK istnieje
-      - name: Check if unsigned APK exists
+      - name: Debug: Check build output
+        if: success()
         run: |
-          ls -la app/build/outputs/apk/release/ || exit 1
-          if [ ! -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
-            echo "ERROR: app-release-unsigned.apk NOT FOUND!"
+          ls -la app/build/outputs/apk/release/
+          if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            echo "Unsigned APK generated successfully"
+          else
+            echo "ERROR: Unsigned APK not found!"
             exit 1
           fi
-          echo "APK found! Proceeding..."
 
       - name: Get version
+        if: success()
         run: |
           VERSION_NAME=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '"')
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
 
       - name: Align APK
+        if: success()
         run: |
           zipalign -v -p 4 \
             app/build/outputs/apk/release/app-release-unsigned.apk \
             app/build/outputs/apk/release/app-release-aligned.apk
 
       - name: Sign APK
+        if: success()
         run: |
           apksigner sign \
-            --ks translateoverlay.jks \
-            --ks-key-alias translateoverlay \
+            --ks translateoverflow.jks \
+            --ks-key-alias translateoverflow \
             --ks-pass pass:morosakubek@o2.pl \
             --key-pass pass:morosakubek@o2.pl \
             --out app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk \
             app/build/outputs/apk/release/app-release-aligned.apk
-
           apksigner verify \
             app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-apk
           path: app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
+          retention-days: 30
 
       - name: Upload logs on failure
         if: failure()
@@ -111,3 +119,4 @@ jobs:
           path: |
             **/*.log
             build/
+          retention-days: 7
