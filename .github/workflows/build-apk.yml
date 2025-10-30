@@ -1,13 +1,11 @@
 name: Manual Build and Release GoogleTranslateOverlay APK
 
 on:
-  workflow_dispatch:  # TYLKO RĘCZNIE – ŻADNEGO PUSH
+  workflow_dispatch:  # RĘCZNIE TYLKO
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout repository
@@ -21,16 +19,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'gradle'
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          api-level: 34
-          build-tools: '34.0.0'
-
-      - name: Add build-tools to PATH
-        run: |
-          echo "$ANDROID_HOME/build-tools/34.0.0" >> $GITHUB_PATH
 
       - name: Generate Gradle Wrapper
         run: |
@@ -47,12 +35,10 @@ jobs:
             -keypass morosakubek@o2.pl
           echo "KEYSTORE_PATH=$(pwd)/translateoverlay.jks" >> $GITHUB_ENV
 
-      - name: Debug: Verify keystore and tools
+      - name: Verify keystore
         run: |
           ls -la translateoverlay.jks
-          keytool -list -v -keystore translateoverlay.jks -storepass morosakubek@o2.pl | head -10
-          which zipalign || echo "zipalign not found"
-          which apksigner || echo "apksigner not found"
+          keytool -list -v -keystore translateoverlay.jks -storepass morosakubek@o2.pl | head -20
 
       - name: Build with Gradle
         run: |
@@ -62,16 +48,6 @@ jobs:
           KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
           KEYSTORE_PASSWORD: morosakubek@o2.pl
           KEY_PASSWORD: morosakubek@o2.pl
-
-      - name: Debug: Check unsigned APK
-        run: |
-          ls -la app/build/outputs/apk/release/ || echo "No release dir"
-          if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
-            echo "Unsigned APK found!"
-          else
-            echo "ERROR: Unsigned APK missing!"
-            exit 1
-          fi
 
       - name: Get version
         run: |
@@ -93,11 +69,10 @@ jobs:
             --key-pass pass:morosakubek@o2.pl \
             --out app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk \
             app/build/outputs/apk/release/app-release-aligned.apk
-
           apksigner verify \
             app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
 
-      - name: Upload APK as artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-apk
@@ -108,7 +83,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: build-failure-logs
+          name: build-log-failure
           path: |
             **/*.log
             build/
