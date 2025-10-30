@@ -7,13 +7,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Dla uploadu assetów do release
+      contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Dla tagów i historii
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -22,60 +22,85 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      # Generowanie Gradle Wrapper
       - name: Generate Gradle Wrapper
         run: |
           gradle wrapper --gradle-version 9.1.0
           chmod +x ./gradlew
-        env:
-          GRADLE_USER_HOME: ./.gradle
 
+      # Generowanie keystore z hasłem morosakubek@o2.pl
       - name: Generate keystore
         run: |
           keytool -genkey -v -keystore translateoverlay.jks \
             -alias translateoverlay \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=TranslateOverlay, OU=Unknown, O=Unknown, L=Unknown, S=Unknown, C=PL" \
-            -storepass ${{ secrets.KEYSTORE_PASSWORD }} \
-            -keypass ${{ secrets.KEY_PASSWORD }}
+            -storepass morosakubek@o2.pl \
+            -keypass morosakubek@o2.pl
           echo "KEYSTORE_PATH=$(pwd)/translateoverlay.jks" >> $GITHUB_ENV
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
+      # Debug: sprawdź, czy keystore istnieje
+      - name: Verify keystore
+        run: |
+          ls -la translateoverlay.jks
+          keytool -list -v -keystore translateoverlay.jks -storepass morosakubek@o2.pl | head -20
+
+      # Build APK
       - name: Build with Gradle
-        run: ./gradlew assembleRelease --stacktrace --info
+        run: |
+          ./gradlew assembleRelease --stacktrace --info
         env:
-          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m"
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g"
           KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: morosakubek@o2.pl
+          KEY_PASSWORD: morosakubek@o2.pl
 
+      # Pobierz wersję z build.gradle
       - name: Get version from build.gradle
-        id: version
+        if: success()
         run: |
           VERSION_NAME=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '"')
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
 
+      # Wyrównaj APK
       - name: Align APK
+        if: success()
         run: |
-          zipalign -v -p 4 app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/app-release-aligned.apk
+          zipalign -v -p 4 \
+            app/build/outputs/apk/release/app-release-unsigned.apk \
+            app/build/outputs/apk/release/app-release-aligned.apk
 
+      # Podpisz APK
       - name: Sign APK
+        if: success()
         run: |
-          apksigner sign --ks translateoverlay.jks \
+          apksigner sign \
+            --ks translateoverlay.jks \
             --ks-key-alias translateoverlay \
-            --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
-            --key-pass pass:${{ secrets.KEY_PASSWORD }} \
+            --ks-pass pass:morosakubek@o2.pl \
+            --key-pass pass:morosakubek@o2.pl \
             --out app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk \
             app/build/outputs/apk/release/app-release-aligned.apk
-          apksigner verify app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
+          apksigner verify \
+            app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
+
+      # Upload APK jako artifact
       - name: Upload APK as artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-apk
           path: app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
           retention-days: 30
+
+      # Upload logów przy błędzie
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-failure
+          path: |
+            **/*.log
+            build/
+          retention-days: 7
