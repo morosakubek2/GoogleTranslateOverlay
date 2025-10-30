@@ -1,7 +1,7 @@
 name: Manual Build and Release GoogleTranslateOverlay APK
 
 on:
-  workflow_dispatch:  # RĘCZNIE TYLKO
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,6 +20,16 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          build-tools: '34.0.0'
+
+      - name: Add build-tools to PATH
+        run: |
+          echo "$ANDROID_HOME/build-tools/34.0.0" >> $GITHUB_PATH
+
       - name: Generate Gradle Wrapper
         run: |
           gradle wrapper --gradle-version 9.1.0
@@ -35,16 +45,10 @@ jobs:
             -keypass morosakubek@o2.pl
           echo "KEYSTORE_PATH=$(pwd)/translateoverlay.jks" >> $GITHUB_ENV
 
-      - name: Verify keystore
-        run: |
-          ls -la translateoverlay.jks
-          keytool -list -v -keystore translateoverlay.jks -storepass morosakubek@o2.pl | head -20
-
       - name: Build with Gradle
         run: |
           ./gradlew assembleRelease --stacktrace --info
         env:
-          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g"
           KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
           KEYSTORE_PASSWORD: morosakubek@o2.pl
           KEY_PASSWORD: morosakubek@o2.pl
@@ -69,6 +73,7 @@ jobs:
             --key-pass pass:morosakubek@o2.pl \
             --out app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk \
             app/build/outputs/apk/release/app-release-aligned.apk
+
           apksigner verify \
             app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
 
@@ -78,13 +83,3 @@ jobs:
           name: GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-apk
           path: app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
           retention-days: 30
-
-      - name: Upload logs on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log-failure
-          path: |
-            **/*.log
-            build/
-          retention-days: 7
