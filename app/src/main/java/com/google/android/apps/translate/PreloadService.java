@@ -28,7 +28,7 @@ public class PreloadService extends Service {
             startActivity(preloadIntent);
             Log.d(TAG, "Translator preloaded in background");
         } catch (Exception e) {
-            Log.e(TAG, "Failed to preload", e);
+            Log.e(TAG, "Preload failed", e);
         }
     }
 }
