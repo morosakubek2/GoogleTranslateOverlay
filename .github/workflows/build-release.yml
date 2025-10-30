@@ -1,7 +1,7 @@
 name: Manual Build and Release GoogleTranslateOverlay APK
 
 on:
-  workflow_dispatch:  # Ręczne uruchamianie
+  workflow_dispatch:
 
 jobs:
   build:
@@ -22,13 +22,27 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      # Instalacja Android SDK + zipalign + apksigner
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          build-tools: '34.0.0'
+          ndk: false
+          cmake: false
+
+      # Dodaj build-tools do PATH
+      - name: Add build-tools to PATH
+        run: |
+          echo "$ANDROID_HOME/build-tools/34.0.0" >> $GITHUB_PATH
+
       # Generowanie Gradle Wrapper
       - name: Generate Gradle Wrapper
         run: |
           gradle wrapper --gradle-version 9.1.0
           chmod +x ./gradlew
 
-      # Generowanie keystore z hasłem morosakubek@o2.pl
+      # Generowanie keystore
       - name: Generate keystore
         run: |
           keytool -genkey -v -keystore translateoverlay.jks \
@@ -39,11 +53,12 @@ jobs:
             -keypass morosakubek@o2.pl
           echo "KEYSTORE_PATH=$(pwd)/translateoverlay.jks" >> $GITHUB_ENV
 
-      # Debug: sprawdź, czy keystore istnieje
-      - name: Verify keystore
+      # Debug: sprawdź narzędzia
+      - name: Verify tools
         run: |
+          which zipalign || echo "zipalign not found"
+          which apksigner || echo "apksigner not found"
           ls -la translateoverlay.jks
-          keytool -list -v -keystore translateoverlay.jks -storepass morosakubek@o2.pl | head -20
 
       # Build APK
       - name: Build with Gradle
@@ -55,8 +70,8 @@ jobs:
           KEYSTORE_PASSWORD: morosakubek@o2.pl
           KEY_PASSWORD: morosakubek@o2.pl
 
-      # Pobierz wersję z build.gradle
-      - name: Get version from build.gradle
+      # Pobierz wersję
+      - name: Get version
         if: success()
         run: |
           VERSION_NAME=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '"')
@@ -85,8 +100,8 @@ jobs:
           apksigner verify \
             app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
 
-      # Upload APK jako artifact
-      - name: Upload APK as artifact
+      # Upload APK
+      - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
@@ -95,11 +110,11 @@ jobs:
           retention-days: 30
 
       # Upload logów przy błędzie
-      - name: Upload build log on failure
+      - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: build-log-failure
+          name: build-failure-logs
           path: |
             **/*.log
             build/
