@@ -1,7 +1,7 @@
 name: Manual Build and Release GoogleTranslateOverlay APK
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # TYLKO RĘCZNIE – ŻADNEGO PUSH
 
 jobs:
   build:
