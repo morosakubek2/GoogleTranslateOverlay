@@ -6,6 +6,7 @@
 
     <queries>
         <package android:name="dev.davidv.translator" />
+        <package android:name="com.onyx.neverland.alreaderpro" />
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT" />
             <data android:mimeType="text/plain" />
@@ -22,10 +23,11 @@
         android:icon="@android:mipmap/sym_def_app_icon"
         android:theme="@style/Theme.AppCompat.NoActionBar">
 
-        <!-- ZAMIENIONO Activity → Service -->
-        <service
-            android:name=".TranslateService"
-            android:exported="true">
+        <activity
+            android:name=".TranslateActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
             <intent-filter android:priority="9999">
                 <action android:name="android.intent.action.PROCESS_TEXT" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -36,7 +38,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
-        </service>
-
+            <!-- Dodaj to do wykrywany jako "uruchamialny" słownik -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>
