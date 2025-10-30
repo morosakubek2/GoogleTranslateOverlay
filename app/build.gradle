@@ -14,18 +14,8 @@ android {
         versionName "1.0"
     }
 
-    signingConfigs {
-        release {
-            storeFile file(System.getenv('KEYSTORE_PATH') ?: 'translateoverlay.jks')
-            storePassword System.getenv('KEYSTORE_PASSWORD') ?: 'morosakubek@o2.pl'
-            keyAlias 'translateoverlay'
-            keyPassword System.getenv('KEY_PASSWORD') ?: 'morosakubek@o2.pl'
-        }
-    }
-
     buildTypes {
         release {
-            signingConfig signingConfigs.release
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
