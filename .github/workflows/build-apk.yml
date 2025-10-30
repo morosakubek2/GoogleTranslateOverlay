@@ -1,4 +1,4 @@
-name: Manual Build & Release APK
+name: Build & Release APK
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Potrzebne do tworzenia release
+      contents: write
 
     steps:
       - name: Checkout
@@ -33,47 +33,24 @@ jobs:
           gradle wrapper --gradle-version 9.1.0
           chmod +x ./gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --stacktrace
 
-      - name: Get version
+      - name: Get APK
         run: |
-          VER=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '"')
-          echo "VER=$VER" >> $GITHUB_ENV
+          cp app/build/outputs/apk/release/app-release.apk GoogleTranslateOverlay-v1.2-signed.apk
 
-      - name: Generate keystore
-        run: |
-          keytool -genkey -v -keystore app.jks -alias app \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=Test" -storepass morosakubek@o2.pl -keypass morosakubek@o2.pl
-
-      - name: Align APK
-        run: |
-          zipalign -v -p 4 \
-            app/build/outputs/apk/debug/app-debug.apk \
-            aligned.apk
-
-      - name: Sign APK
-        run: |
-          apksigner sign \
-            --ks app.jks \
-            --ks-key-alias app \
-            --ks-pass pass:morosakubek@o2.pl \
-            --key-pass pass:morosakubek@o2.pl \
-            --out GoogleTranslateOverlay-v${{ env.VER }}-signed.apk \
-            aligned.apk
-
-      - name: Upload to Artifacts
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: APK
-          path: GoogleTranslateOverlay-v${{ env.VER }}-signed.apk
+          path: GoogleTranslateOverlay-v1.2-signed.apk
 
-      - name: Create GitHub Release
+      - name: Create Release
         run: |
-          gh release create "v${{ env.VER }}" \
-            --title "GoogleTranslateOverlay v${{ env.VER }}" \
-            --notes "Automatyczny build z GitHub Actions" \
-            GoogleTranslateOverlay-v${{ env.VER }}-signed.apk
+          gh release create "v1.2" \
+            --title "GoogleTranslateOverlay v1.2" \
+            --notes "Ultra-light overlay (<220KB), no flicker, Java" \
+            GoogleTranslateOverlay-v1.2-signed.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
