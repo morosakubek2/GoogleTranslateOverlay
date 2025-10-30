@@ -22,27 +22,21 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      # Instalacja Android SDK + zipalign + apksigner
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           api-level: 34
           build-tools: '34.0.0'
-          ndk: false
-          cmake: false
 
-      # Dodaj build-tools do PATH
       - name: Add build-tools to PATH
         run: |
           echo "$ANDROID_HOME/build-tools/34.0.0" >> $GITHUB_PATH
 
-      # Generowanie Gradle Wrapper
       - name: Generate Gradle Wrapper
         run: |
           gradle wrapper --gradle-version 9.1.0
           chmod +x ./gradlew
 
-      # Generowanie keystore
       - name: Generate keystore
         run: |
           keytool -genkey -v -keystore translateoverlay.jks \
@@ -53,15 +47,14 @@ jobs:
             -keypass morosakubek@o2.pl
           echo "KEYSTORE_PATH=$(pwd)/translateoverlay.jks" >> $GITHUB_ENV
 
-      # Debug: sprawdź narzędzia
-      - name: Verify tools
+      - name: Debug: List files and keystore
         run: |
-          which zipalign || echo "zipalign not found"
-          which apksigner || echo "apksigner not found"
-          ls -la translateoverlay.jks
+          ls -la
+          ls -la app/build/outputs/apk/release/ || echo "No output yet"
+          keytool -list -v -keystore translateoverlay.jks -storepass morosakubek@o2.pl | head -10
 
-      # Build APK
-      - name: Build with Gradle
+      # BUDUJ TYLKO UNSIGNED APK
+      - name: Build unsigned APK
         run: |
           ./gradlew assembleRelease --stacktrace --info
         env:
@@ -70,24 +63,28 @@ jobs:
           KEYSTORE_PASSWORD: morosakubek@o2.pl
           KEY_PASSWORD: morosakubek@o2.pl
 
-      # Pobierz wersję
+      # DEBUG: Sprawdź, czy APK istnieje
+      - name: Check if unsigned APK exists
+        run: |
+          ls -la app/build/outputs/apk/release/ || exit 1
+          if [ ! -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            echo "ERROR: app-release-unsigned.apk NOT FOUND!"
+            exit 1
+          fi
+          echo "APK found! Proceeding..."
+
       - name: Get version
-        if: success()
         run: |
           VERSION_NAME=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '"')
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
 
-      # Wyrównaj APK
       - name: Align APK
-        if: success()
         run: |
           zipalign -v -p 4 \
             app/build/outputs/apk/release/app-release-unsigned.apk \
             app/build/outputs/apk/release/app-release-aligned.apk
 
-      # Podpisz APK
       - name: Sign APK
-        if: success()
         run: |
           apksigner sign \
             --ks translateoverlay.jks \
@@ -100,16 +97,12 @@ jobs:
           apksigner verify \
             app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
 
-      # Upload APK
       - name: Upload APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-apk
           path: app/build/outputs/apk/release/GoogleTranslateOverlay-v${{ env.VERSION_NAME }}-signed.apk
-          retention-days: 30
 
-      # Upload logów przy błędzie
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -118,4 +111,3 @@ jobs:
           path: |
             **/*.log
             build/
-          retention-days: 7
