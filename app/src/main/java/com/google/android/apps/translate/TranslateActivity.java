@@ -4,17 +4,16 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Toast;
 
 public class TranslateActivity extends Activity {
-    private static final String TAG = "TranslateOverlay";
     private static final String TARGET_PACKAGE = "dev.davidv.translator";
     private static final String TARGET_ACTIVITY = ".ProcessTextActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        startService(new Intent(this, PreloadService.class));
         handleIntent(getIntent());
         finish();
     }
