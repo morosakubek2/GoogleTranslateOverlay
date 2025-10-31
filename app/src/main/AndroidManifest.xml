@@ -20,13 +20,13 @@
         android:allowBackup="false"
         android:label="Google Translate"
         android:icon="@android:mipmap/sym_def_app_icon"
-        android:theme="@android:style/Theme.Translucent.NoTitleBar"
         android:usesCleartextTraffic="false">
 
         <activity
             android:name=".TranslateActivity"
             android:exported="true"
-            android:launchMode="singleTask">
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
             <intent-filter android:priority="9999">
                 <action android:name="android.intent.action.PROCESS_TEXT" />
                 <category android:name="android.intent.category.DEFAULT" />
