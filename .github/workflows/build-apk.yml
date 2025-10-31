@@ -19,19 +19,12 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # AUTOMATYCZNA INSTALACJA GRADLE 8.9
-      - name: Install Gradle 8.9
-        run: |
-          curl -s https://services.gradle.org/distributions/gradle-8.9-bin.zip -o gradle.zip
-          unzip -q gradle.zip
-          echo "$(pwd)/gradle-8.9/bin" >> $GITHUB_PATH
-          gradle --version
-
-      # GENERUJ gradlew AUTOMATYCZNIE
-      - name: Generate Gradle Wrapper
-        run: |
-          gradle wrapper --gradle-version 8.9 --distribution-type bin
-          chmod +x ./gradlew
+      # OFICJALNA AKCJA GRADLE – 100% AUTOMATYCZNA
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: 8.9
+          cache-read-only: false
 
       # BUILD
       - name: Build Release APK
@@ -44,7 +37,7 @@ jobs:
           VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      # KOPIUJ DOWOLNY APK
+      # KOPIUJ APK
       - name: Copy APK
         run: |
           SOURCE=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
@@ -73,7 +66,7 @@ jobs:
           gh release delete "v${{ steps.version.outputs.version }}" --yes || true
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "GoogleTranslateOverlay v${{ steps.version.outputs.version }}" \
-            --notes "Auto-built, Gradle 8.9, no local setup" \
+            --notes "Auto-built with gradle-build-action" \
             GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
