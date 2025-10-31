@@ -34,23 +34,31 @@ jobs:
           chmod +x ./gradlew
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleRelease --stacktrace --info
 
-      - name: Get APK
+      - name: Copy APK
         run: |
-          cp app/build/outputs/apk/release/app-release.apk GoogleTranslateOverlay-v1.2-signed.apk
+          APK_PATH="app/build/outputs/apk/release/app-release-unsigned.apk"
+          if [ ! -f "$APK_PATH" ]; then
+            echo "APK not found! Listing all APKs:"
+            find app/build/outputs/apk -name "*.apk" || true
+            exit 1
+          fi
+          cp "$APK_PATH" GoogleTranslateOverlay-v1.2.apk
+          echo "APK copied: $APK_PATH"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: APK
-          path: GoogleTranslateOverlay-v1.2-signed.apk
+          path: GoogleTranslateOverlay-v1.2.apk
 
       - name: Create Release
         run: |
+          gh release delete "v1.2" --yes || true
           gh release create "v1.2" \
             --title "GoogleTranslateOverlay v1.2" \
-            --notes "Ultra-light (<250KB), no flicker, preload on first use" \
-            GoogleTranslateOverlay-v1.2-signed.apk
+            --notes "Ultra-light (~200KB), no flicker, preload on use" \
+            GoogleTranslateOverlay-v1.2.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
