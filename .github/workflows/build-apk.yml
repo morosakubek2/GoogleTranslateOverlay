@@ -18,26 +18,29 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: false  # BEZ CACHE – to powoduje błąd
 
-      # OFICJALNA AKCJA GRADLE – 100% AUTOMATYCZNA
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v3
-        with:
-          gradle-version: 8.9
-          cache-read-only: false
+      - name: Install Gradle 8.9
+        run: |
+          curl -sL https://services.gradle.org/distributions/gradle-8.9-bin.zip -o gradle.zip
+          unzip -q gradle.zip
+          export PATH=$(pwd)/gradle-8.9/bin:$PATH
+          gradle --version
 
-      # BUILD
+      - name: Generate Gradle Wrapper
+        run: |
+          gradle wrapper --gradle-version 8.9 --distribution-type bin
+          chmod +x ./gradlew
+
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace --info
 
-      # DYNAMICZNA WERSJA
       - name: Get Version Name
         id: version
         run: |
           VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      # KOPIUJ APK
       - name: Copy APK
         run: |
           SOURCE=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
@@ -53,20 +56,18 @@ jobs:
           echo "APK: $(du -h $TARGET)"
           file "$TARGET"
 
-      # UPLOAD
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: APK
           path: GoogleTranslateOverlay-v*.apk
 
-      # RELEASE
       - name: Create Release
         run: |
           gh release delete "v${{ steps.version.outputs.version }}" --yes || true
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "GoogleTranslateOverlay v${{ steps.version.outputs.version }}" \
-            --notes "Auto-built with gradle-build-action" \
+            --notes "Working overlay, no cache" \
             GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
