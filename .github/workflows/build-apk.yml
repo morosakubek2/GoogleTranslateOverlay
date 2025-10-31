@@ -25,43 +25,40 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace --info
 
-      - name: DEBUG: List all files in build
+      - name: Get Version Name
+        id: version
         run: |
-          echo "=== app/build/outputs/apk/release/ ==="
-          ls -la app/build/outputs/apk/release/ || echo "No release dir"
-          echo "=== All APK files ==="
-          find . -name "*.apk" -ls
+          VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
 
-      - name: Copy REAL APK
+      - name: Copy APK with Dynamic Name
         run: |
-          APK_PATH=$(find app/build/outputs/apk -name "app-release-unsigned.apk" | head -1)
+          SOURCE="app/build/outputs/apk/release/app-release-unsigned.apk"
+          TARGET="GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk"
           
-          if [ -z "$APK_PATH" ]; then
-            echo "ERROR: APK not found!"
+          if [ ! -f "$SOURCE" ]; then
+            echo "APK NOT FOUND!"
             exit 1
           fi
           
-          echo "APK found: $APK_PATH"
-          echo "Size: $(du -h "$APK_PATH")"
-          file "$APK_PATH"
-          
-          cp "$APK_PATH" GoogleTranslateOverlay-v1.2.apk
-          echo "Copied to: GoogleTranslateOverlay-v1.2.apk"
-          ls -lh GoogleTranslateOverlay-v1.2.apk
-          file GoogleTranslateOverlay-v1.2.apk
+          cp "$SOURCE" "$TARGET"
+          echo "APK COPIED:"
+          ls -lh "$TARGET"
+          file "$TARGET"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: APK
-          path: GoogleTranslateOverlay-v1.2.apk
+          path: GoogleTranslateOverlay-v*.apk
 
       - name: Create Release
         run: |
-          gh release delete "v1.2" --yes || true
-          gh release create "v1.2" \
-            --title "GoogleTranslateOverlay v1.2" \
-            --notes "Working APK (~212KB)" \
-            GoogleTranslateOverlay-v1.2.apk
+          gh release delete "v${{ steps.version.outputs.version }}" --yes || true
+          gh release create "v${{ steps.version.outputs.version }}" \
+            --title "GoogleTranslateOverlay v${{ steps.version.outputs.version }}" \
+            --notes "Ultra-light overlay, preload on use" \
+            GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
