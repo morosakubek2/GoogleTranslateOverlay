@@ -19,29 +19,33 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install Gradle (for wrapper only)
+      # AUTOMATYCZNA INSTALACJA GRADLE 8.9
+      - name: Install Gradle 8.9
         run: |
-          # Instalacja Gradle przez SDKMAN (tymczasowa)
-          curl -s "https://get.sdkman.io" | bash
-          source "$HOME/.sdkman/bin/sdkman-init.sh"
-          sdk install gradle 8.7
+          curl -s https://services.gradle.org/distributions/gradle-8.9-bin.zip -o gradle.zip
+          unzip -q gradle.zip
+          echo "$(pwd)/gradle-8.9/bin" >> $GITHUB_PATH
           gradle --version
 
+      # GENERUJ gradlew AUTOMATYCZNIE
       - name: Generate Gradle Wrapper
         run: |
-          gradle wrapper --gradle-version 8.7 --distribution-type bin
+          gradle wrapper --gradle-version 8.9 --distribution-type bin
           chmod +x ./gradlew
 
+      # BUILD
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace --info
 
+      # DYNAMICZNA WERSJA
       - name: Get Version Name
         id: version
         run: |
           VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Copy Any APK
+      # KOPIUJ DOWOLNY APK
+      - name: Copy APK
         run: |
           SOURCE=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
           TARGET="GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk"
@@ -53,23 +57,23 @@ jobs:
           fi
           
           cp "$SOURCE" "$TARGET"
-          echo "APK FOUND: $SOURCE"
-          echo "COPIED TO: $TARGET"
-          ls -lh "$TARGET"
+          echo "APK: $(du -h $TARGET)"
           file "$TARGET"
 
+      # UPLOAD
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: APK
           path: GoogleTranslateOverlay-v*.apk
 
+      # RELEASE
       - name: Create Release
         run: |
           gh release delete "v${{ steps.version.outputs.version }}" --yes || true
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "GoogleTranslateOverlay v${{ steps.version.outputs.version }}" \
-            --notes "Working overlay, no cache" \
+            --notes "Auto-built, Gradle 8.9, no local setup" \
             GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
