@@ -19,56 +19,49 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: '12.0'
-          packages: 'build-tools;34.0.0 platform-tools platforms;android-34'
-
-      - name: Add build-tools to PATH
-        run: echo "$ANDROID_HOME/build-tools/34.0.0" >> $GITHUB_PATH
-
-      - name: Generate Gradle Wrapper
-        run: |
-          gradle wrapper --gradle-version 9.1.0
-          chmod +x ./gradlew
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
 
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace --info
 
-      - name: Get Version Name
-        id: version
+      - name: DEBUG: List all files in build
         run: |
-          VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "=== app/build/outputs/apk/release/ ==="
+          ls -la app/build/outputs/apk/release/ || echo "No release dir"
+          echo "=== All APK files ==="
+          find . -name "*.apk" -ls
 
-      - name: Copy APK with Dynamic Name
+      - name: Copy REAL APK
         run: |
-          APK_SOURCE="app/build/outputs/apk/release/app-release-unsigned.apk"
-          APK_FINAL="GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk"
+          APK_PATH=$(find app/build/outputs/apk -name "app-release-unsigned.apk" | head -1)
           
-          if [ ! -f "$APK_SOURCE" ]; then
-            echo "APK not found at $APK_SOURCE"
+          if [ -z "$APK_PATH" ]; then
+            echo "ERROR: APK not found!"
             exit 1
           fi
           
-          cp "$APK_SOURCE" "$APK_FINAL"
-          echo "APK copied to: $APK_FINAL"
-          ls -lh "$APK_FINAL"
+          echo "APK found: $APK_PATH"
+          echo "Size: $(du -h "$APK_PATH")"
+          file "$APK_PATH"
+          
+          cp "$APK_PATH" GoogleTranslateOverlay-v1.2.apk
+          echo "Copied to: GoogleTranslateOverlay-v1.2.apk"
+          ls -lh GoogleTranslateOverlay-v1.2.apk
+          file GoogleTranslateOverlay-v1.2.apk
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: APK
-          path: GoogleTranslateOverlay-v*.apk
+          path: GoogleTranslateOverlay-v1.2.apk
 
       - name: Create Release
         run: |
-          gh release delete "v${{ steps.version.outputs.version }}" --yes || true
-          gh release create "v${{ steps.version.outputs.version }}" \
-            --title "GoogleTranslateOverlay v${{ steps.version.outputs.version }}" \
-            --notes "Ultra-light overlay, no flicker, preload on use" \
-            GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk
+          gh release delete "v1.2" --yes || true
+          gh release create "v1.2" \
+            --title "GoogleTranslateOverlay v1.2" \
+            --notes "Working APK (~212KB)" \
+            GoogleTranslateOverlay-v1.2.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
