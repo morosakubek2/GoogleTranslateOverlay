@@ -36,29 +36,39 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace --info
 
-      - name: Copy APK
+      - name: Get Version Name
+        id: version
         run: |
-          APK_PATH="app/build/outputs/apk/release/app-release-unsigned.apk"
-          if [ ! -f "$APK_PATH" ]; then
-            echo "APK not found! Listing all APKs:"
-            find app/build/outputs/apk -name "*.apk" || true
+          VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Copy APK with Dynamic Name
+        run: |
+          APK_SOURCE="app/build/outputs/apk/release/app-release-unsigned.apk"
+          APK_FINAL="GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk"
+          
+          if [ ! -f "$APK_SOURCE" ]; then
+            echo "APK not found at $APK_SOURCE"
             exit 1
           fi
-          cp "$APK_PATH" GoogleTranslateOverlay-v1.2.apk
-          echo "APK copied: $APK_PATH"
+          
+          cp "$APK_SOURCE" "$APK_FINAL"
+          echo "APK copied to: $APK_FINAL"
+          ls -lh "$APK_FINAL"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: APK
-          path: GoogleTranslateOverlay-v1.2.apk
+          path: GoogleTranslateOverlay-v*.apk
 
       - name: Create Release
         run: |
-          gh release delete "v1.2" --yes || true
-          gh release create "v1.2" \
-            --title "GoogleTranslateOverlay v1.2" \
-            --notes "Ultra-light (~200KB), no flicker, preload on use" \
-            GoogleTranslateOverlay-v1.2.apk
+          gh release delete "v${{ steps.version.outputs.version }}" --yes || true
+          gh release create "v${{ steps.version.outputs.version }}" \
+            --title "GoogleTranslateOverlay v${{ steps.version.outputs.version }}" \
+            --notes "Ultra-light overlay, no flicker, preload on use" \
+            GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
