@@ -30,20 +30,21 @@ jobs:
         run: |
           VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building version: $VERSION"
 
-      - name: Copy APK with Dynamic Name
+      - name: Copy Any APK from Release
         run: |
-          SOURCE="app/build/outputs/apk/release/app-release-unsigned.apk"
+          SOURCE=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
           TARGET="GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk"
           
-          if [ ! -f "$SOURCE" ]; then
-            echo "APK NOT FOUND!"
+          if [ -z "$SOURCE" ]; then
+            echo "ERROR: No APK found!"
+            ls -la app/build/outputs/apk/release/ || true
             exit 1
           fi
           
           cp "$SOURCE" "$TARGET"
-          echo "APK COPIED:"
+          echo "APK FOUND: $SOURCE"
+          echo "COPIED TO: $TARGET"
           ls -lh "$TARGET"
           file "$TARGET"
 
@@ -58,7 +59,7 @@ jobs:
           gh release delete "v${{ steps.version.outputs.version }}" --yes || true
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "GoogleTranslateOverlay v${{ steps.version.outputs.version }}" \
-            --notes "Ultra-light overlay, preload on use" \
+            --notes "Working overlay" \
             GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
