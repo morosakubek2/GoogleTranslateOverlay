@@ -19,8 +19,15 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+      - name: Install Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.7
+
+      - name: Generate Gradle Wrapper
+        run: |
+          gradle wrapper --gradle-version 8.7 --distribution-type bin
+          chmod +x ./gradlew
 
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace --info
@@ -31,7 +38,7 @@ jobs:
           VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Copy Any APK from Release
+      - name: Copy Any APK
         run: |
           SOURCE=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
           TARGET="GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk"
@@ -59,7 +66,7 @@ jobs:
           gh release delete "v${{ steps.version.outputs.version }}" --yes || true
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "GoogleTranslateOverlay v${{ steps.version.outputs.version }}" \
-            --notes "Working overlay" \
+            --notes "Working overlay, no local Gradle needed" \
             GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
