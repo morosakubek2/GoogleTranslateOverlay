@@ -50,7 +50,7 @@ jobs:
         run: |
           gh release create "v1.2" \
             --title "GoogleTranslateOverlay v1.2" \
-            --notes "Ultra-light overlay (<220KB), no flicker, Java" \
+            --notes "Ultra-light (<250KB), no flicker, preload on first use" \
             GoogleTranslateOverlay-v1.2-signed.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
