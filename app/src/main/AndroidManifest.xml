@@ -59,7 +59,7 @@
             <!-- Bezpośrednie tłumaczenie -->
             <intent-filter
                 android:label="!Translate"
-                android:icon="@android:drawable/ic_menu_translate">
+                android:icon="@android:drawable/ic_menu_share">
                 <action android:name="android.intent.action.TRANSLATE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
@@ -76,7 +76,7 @@
 
             <intent-filter
                 android:label="!Translate"
-                android:icon="@android:drawable/ic_menu_translate">
+                android:icon="@android:drawable/ic_menu_search">
                 <action android:name="android.intent.action.PROCESS_TEXT" />
                 <action android:name="android.intent.action.PROCESS_TEXT_READONLY" />
                 <category android:name="android.intent.category.DEFAULT" />
