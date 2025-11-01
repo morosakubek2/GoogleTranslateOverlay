@@ -13,7 +13,6 @@ public class TranslateSession extends VoiceInteractionSession {
 
     @Override
     public void onHandleAssist(Bundle data, String[] hints, int[] offsets) {
-        // Pobierz zaznaczony tekst
         String text = data.getString("android.intent.extra.TEXT");
         if (text != null && !text.trim().isEmpty()) {
             redirectToOffline(text);
