@@ -14,7 +14,6 @@ android {
         versionName "2"
     }
 
-    // === FLAVORS ===
     flavorDimensions "mode"
     productFlavors {
         minimal {
@@ -33,12 +32,26 @@ android {
         release {
             minifyEnabled false
             shrinkResources false
-            // Podpis w CI
         }
     }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+// === TASKI DO ODCZYTU WERSJI DLA CI ===
+tasks.register('minimalProperties') {
+    doLast {
+        def fullVersion = android.defaultConfig.versionName + android.productFlavors.minimal.versionNameSuffix
+        println "versionName: $fullVersion"
+    }
+}
+
+tasks.register('assistantProperties') {
+    doLast {
+        def fullVersion = android.defaultConfig.versionName + android.productFlavors.assistant.versionNameSuffix
+        println "versionName: $fullVersion"
     }
 }
