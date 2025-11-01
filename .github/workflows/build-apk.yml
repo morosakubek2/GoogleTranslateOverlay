@@ -13,24 +13,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      # GRADLE SAM USTAWIA JAVĘ – BEZ setup-java
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
         with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: false  # BEZ CACHE – to powoduje błąd
-
-      - name: Install Gradle 8.9
-        run: |
-          curl -sL https://services.gradle.org/distributions/gradle-8.9-bin.zip -o gradle.zip
-          unzip -q gradle.zip
-          export PATH=$(pwd)/gradle-8.9/bin:$PATH
-          gradle --version
-
-      - name: Generate Gradle Wrapper
-        run: |
-          gradle wrapper --gradle-version 8.9 --distribution-type bin
-          chmod +x ./gradlew
+          gradle-version: 8.9
+          cache-read-only: false
 
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace --info
@@ -67,7 +55,7 @@ jobs:
           gh release delete "v${{ steps.version.outputs.version }}" --yes || true
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "GoogleTranslateOverlay v${{ steps.version.outputs.version }}" \
-            --notes "Working overlay, no cache" \
+            --notes "Auto-built, no setup-java" \
             GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
