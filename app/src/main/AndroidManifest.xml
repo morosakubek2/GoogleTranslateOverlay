@@ -12,55 +12,52 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" /> <!-- Dla overlay, jeśli potrzebne -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <queries>
-        <package android:name="dev.davidv.translator" /> <!-- Dla visibility Offline-Translator na Android 11+ -->
+        <package android:name="dev.davidv.translator" />
     </queries>
 
-   <application
-        android:allowBackup="false"
+    <application
+        android:allowBackup="true"
         android:label="Google Translate Overlay"
         android:icon="@android:mipmap/sym_def_app_icon"
-        android:usesCleartextTraffic="false"
-        android:theme="@style/Theme.Overlay">
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.NoDisplay">
 
+        <!-- Główna aktywność – przekierowanie do MainActivity offline-translator -->
         <activity
             android:name=".TranslateActivity"
             android:exported="true"
+            android:theme="@android:style/Theme.NoDisplay"
             android:windowSoftInputMode="adjustResize">
-            <!-- Główny launcher, naśladujący Google Translate -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Sharing tekstu (analogiczne do Google) -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
-            <!-- Sharing obrazów (dla tłumaczenia z obrazu) -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
             </intent-filter>
-            <!-- Bezpośrednie tłumaczenie via ACTION_TRANSLATE -->
             <intent-filter>
-                <category android:name="android.intent.category.DEFAULT" />
                 <action android:name="android.intent.action.TRANSLATE" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
+        <!-- TapToTranslate – przekierowanie do ProcessTextActivity -->
         <activity
             android:name=".copydrop.gm3.TapToTranslateActivity"
             android:exported="true"
-            android:windowSoftInputMode="adjustResize"
             android:excludeFromRecents="true"
-            android:theme="@style/WideDialogTheme"> <!-- Dla floating overlay -->
-            <!-- Tłumaczenie zaznaczonego tekstu (Tap to Translate) -->
-            <intent-filter android:label="@string/translate_text">
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter android:label="Translate">
                 <action android:name="android.intent.action.PROCESS_TEXT" />
                 <action android:name="android.intent.action.PROCESS_TEXT_READONLY" />
                 <category android:name="android.intent.category.DEFAULT" />
