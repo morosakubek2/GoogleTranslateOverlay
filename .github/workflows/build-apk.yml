@@ -19,7 +19,7 @@ jobs:
           gradle-version: 8.9
           cache-disabled: true
 
-      - name: Generate gradlew (if missing)
+      - name: Generate gradlew
         run: |
           if [ ! -f "./gradlew" ]; then
             gradle wrapper --gradle-version 8.9 --distribution-type bin
@@ -29,58 +29,49 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace --info
 
-      - name: Wait & List ALL APKs (with full path)
-        run: |
-          echo "=== WAITING 15s FOR FILE SYSTEM ==="
-          sleep 100
-          echo "=== ALL .apk FILES IN PROJECT (FULL PATH + SIZE) ==="
-          find . -name "*.apk" -type f -exec echo "FOUND: {}" \; -exec du -h {} \;
-
       - name: Get Version Name
         id: version
         run: |
           VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Find & Copy LARGEST APK (with log)
+      - name: Decode Keystore
         run: |
-          # Znajdź największy APK
-          LARGEST=$(find . -name "*.apk" -type f -exec du -b {} + | sort -nr | head -1)
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > translateoverlay.jks
+
+      - name: Sign APK
+        run: |
+          UNSIGNED=$(find app/build/outputs/apk/release -name "*-unsigned.apk" | head -1)
+          SIGNED="GoogleTranslateOverlay-v${{ steps.version.outputs.version }}-signed.apk"
           
-          if [ -z "$LARGEST" ]; then
-            echo "ERROR: No APK found anywhere!"
-            exit 1
-          fi
+          # zipalign
+          $ANDROID_HOME/build-tools/34.0.0/zipalign -v -p 4 "$UNSIGNED" aligned.apk
           
-          APK_PATH=$(echo "$LARGEST" | cut -f2)
-          APK_SIZE=$(echo "$LARGEST" | cut -f1 | numfmt --to=iec-i --suffix=B)
+          # apksigner
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
+            --ks translateoverlay.jks \
+            --ks-key-alias translateoverlay \
+            --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
+            --key-pass pass:${{ secrets.KEY_PASSWORD }} \
+            --out "$SIGNED" \
+            aligned.apk
           
-          echo "LARGEST APK FOUND:"
-          echo "   PATH: $APK_PATH"
-          echo "   SIZE: $APK_SIZE"
-          
-          TARGET="GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk"
-          cp "$APK_PATH" "$TARGET"
-          
-          echo "COPIED TO: $TARGET"
-          echo "FINAL SIZE: $(du -h $TARGET | cut -f1)"
-          echo "FILE TYPE: $(file $TARGET)"
-          
-          echo "=== APK STRUCTURE (first 20 entries) ==="
-          unzip -l "$TARGET" | head -20
+          echo "SIGNED APK: $(du -h $SIGNED)"
+          file "$SIGNED"
+          unzip -l "$SIGNED" | head -10
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: APK
-          path: GoogleTranslateOverlay-v*.apk
+          path: GoogleTranslateOverlay-v*-signed.apk
 
       - name: Create Release
         run: |
           gh release delete "v${{ steps.version.outputs.version }}" --yes || true
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "GoogleTranslateOverlay v${{ steps.version.outputs.version }}" \
-            --notes "APK found at: $(find . -name "*.apk" -type f -exec du -b {} + | sort -nr | head -1 | cut -f2)" \
-            GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk
+            --notes "Signed APK, ready to install" \
+            GoogleTranslateOverlay-v${{ steps.version.outputs.version }}-signed.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
