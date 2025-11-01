@@ -2,22 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.google.android.apps.translate">
 
-    <uses-feature
-        android:name="android.hardware.camera"
-        android:required="false" />
-
+    <!-- === UPRAWNIENIA === -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
+    <!-- === WIDOCZNOŚĆ OFFLINE-TRANSLATOR (Android 11+) === -->
     <queries>
         <package android:name="dev.davidv.translator" />
     </queries>
 
+    <!-- === APLIKACJA === -->
     <application
         android:allowBackup="true"
         android:label="Google Translate Overlay"
@@ -25,39 +23,60 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.NoDisplay">
 
-        <!-- Główna aktywność – przekierowanie do MainActivity offline-translator -->
+        <!-- ======================================== -->
+        <!-- GŁÓWNA AKTYWNOŚĆ – Share tekst/obraz + Launcher -->
+        <!-- ======================================== -->
         <activity
             android:name=".TranslateActivity"
             android:exported="true"
             android:theme="@android:style/Theme.NoDisplay"
             android:windowSoftInputMode="adjustResize">
+
+            <!-- Ikona w launcherze -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter>
+
+            <!-- Share → tekst -->
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_share">
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
-            <intent-filter>
+
+            <!-- Share → obraz -->
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_share">
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
             </intent-filter>
-            <intent-filter>
+
+            <!-- Bezpośrednie tłumaczenie -->
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_translate">
                 <action android:name="android.intent.action.TRANSLATE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
-        <!-- TapToTranslate – przekierowanie do ProcessTextActivity -->
+        <!-- ======================================== -->
+        <!-- TAP TO TRANSLATE – Zaznacz tekst → !Translate -->
+        <!-- ======================================== -->
         <activity
             android:name=".copydrop.gm3.TapToTranslateActivity"
             android:exported="true"
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.NoDisplay">
-            <intent-filter android:label="Translate">
+
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_translate">
                 <action android:name="android.intent.action.PROCESS_TEXT" />
                 <action android:name="android.intent.action.PROCESS_TEXT_READONLY" />
                 <category android:name="android.intent.category.DEFAULT" />
