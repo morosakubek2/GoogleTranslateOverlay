@@ -13,65 +13,63 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # USTAW GRADLE (bez cache)
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.9
           cache-disabled: true
 
-      # GENERUJ gradlew JEŚLI NIE MA
       - name: Generate Gradle Wrapper (if missing)
         run: |
           if [ ! -f "./gradlew" ]; then
-            echo "gradlew not found – generating..."
             gradle wrapper --gradle-version 8.9 --distribution-type bin
-          else
-            echo "gradlew already exists"
           fi
           chmod +x ./gradlew
 
-      # BUILD
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace --info
 
-      # WERSJA
+      - name: Wait for full APK
+        run: |
+          echo "Waiting for APK to be fully written..."
+          sleep 10
+          ls -la app/build/outputs/apk/release/
+
       - name: Get Version Name
         id: version
         run: |
           VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      # KOPIUJ APK
-      - name: Copy Any APK
+      - name: Copy FULL APK
         run: |
-          SOURCE=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          SOURCE="app/build/outputs/apk/release/app-release.apk"
           TARGET="GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk"
           
-          if [ -z "$SOURCE" ]; then
-            echo "ERROR: No APK found!"
+          if [ ! -f "$SOURCE" ]; then
+            echo "ERROR: Full APK not found!"
             ls -la app/build/outputs/apk/release/ || true
             exit 1
           fi
           
           cp "$SOURCE" "$TARGET"
-          echo "APK: $(du -h $TARGET)"
+          echo "FULL APK COPIED:"
+          ls -lh "$TARGET"
           file "$TARGET"
+          unzip -l "$TARGET" | head -20
 
-      # UPLOAD
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: APK
           path: GoogleTranslateOverlay-v*.apk
 
-      # RELEASE
       - name: Create Release
         run: |
           gh release delete "v${{ steps.version.outputs.version }}" --yes || true
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "GoogleTranslateOverlay v${{ steps.version.outputs.version }}" \
-            --notes "Auto-built, gradlew generated in CI" \
+            --notes "Full APK, sleep 10s for write completion" \
             GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
