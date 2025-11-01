@@ -1,0 +1,39 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+
+        <!-- Share tekst/obraz -->
+        <activity android:name=".TranslateActivity">
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_share">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_share">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+        </activity>
+
+        <!-- PROCESS_TEXT -->
+        <activity
+            android:name=".copydrop.gm3.TapToTranslateActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_search">
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <action android:name="android.intent.action.PROCESS_TEXT_READONLY" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+    </application>
+</manifest>
