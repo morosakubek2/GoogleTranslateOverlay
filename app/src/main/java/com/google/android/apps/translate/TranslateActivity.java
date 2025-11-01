@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Toast;
 
 public class TranslateActivity extends Activity {
     private static final String TARGET_PACKAGE = "dev.davidv.translator";
@@ -13,7 +12,6 @@ public class TranslateActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        startService(new Intent(this, PreloadService.class));
         handleIntent(getIntent());
         finish();
     }
@@ -49,7 +47,7 @@ public class TranslateActivity extends Activity {
         try {
             startActivity(newIntent);
         } catch (Exception e) {
-            Toast.makeText(this, "Cannot open translator", Toast.LENGTH_SHORT).show();
+            // Nie pokazuj Toast – żeby nie migało
         }
     }
 }
