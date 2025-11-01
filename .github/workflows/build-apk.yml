@@ -13,12 +13,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # GRADLE SAM USTAWIA JAVĘ – BEZ setup-java
-      - name: Setup Gradle
+      # GRADLE SAM USTAWIA JAVĘ + CACHE WYŁĄCZONY
+      - name: Setup Gradle (no cache)
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.9
-          cache-read-only: false
+          cache-disabled: true   # ← WYŁĄCZA CACHE CAŁKOWICIE
 
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace --info
@@ -29,7 +29,7 @@ jobs:
           VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Copy APK
+      - name: Copy Any APK
         run: |
           SOURCE=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
           TARGET="GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk"
@@ -55,7 +55,7 @@ jobs:
           gh release delete "v${{ steps.version.outputs.version }}" --yes || true
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "GoogleTranslateOverlay v${{ steps.version.outputs.version }}" \
-            --notes "Auto-built, no setup-java" \
+            --notes "Auto-built, cache disabled" \
             GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
