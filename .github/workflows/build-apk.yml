@@ -19,7 +19,7 @@ jobs:
           gradle-version: 8.9
           cache-disabled: true
 
-      - name: Generate Gradle Wrapper (if missing)
+      - name: Generate gradlew (if missing)
         run: |
           if [ ! -f "./gradlew" ]; then
             gradle wrapper --gradle-version 8.9 --distribution-type bin
@@ -29,11 +29,12 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace --info
 
-      - name: Wait for full APK
+      - name: Wait & List ALL APKs (with full path)
         run: |
-          echo "Waiting for APK to be fully written..."
-          sleep 10
-          ls -la app/build/outputs/apk/release/
+          echo "=== WAITING 15s FOR FILE SYSTEM ==="
+          sleep 100
+          echo "=== ALL .apk FILES IN PROJECT (FULL PATH + SIZE) ==="
+          find . -name "*.apk" -type f -exec echo "FOUND: {}" \; -exec du -h {} \;
 
       - name: Get Version Name
         id: version
@@ -41,21 +42,31 @@ jobs:
           VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Copy FULL APK
+      - name: Find & Copy LARGEST APK (with log)
         run: |
-          SOURCE="app/build/outputs/apk/release/app-release.apk"
-          TARGET="GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk"
+          # Znajdź największy APK
+          LARGEST=$(find . -name "*.apk" -type f -exec du -b {} + | sort -nr | head -1)
           
-          if [ ! -f "$SOURCE" ]; then
-            echo "ERROR: Full APK not found!"
-            ls -la app/build/outputs/apk/release/ || true
+          if [ -z "$LARGEST" ]; then
+            echo "ERROR: No APK found anywhere!"
             exit 1
           fi
           
-          cp "$SOURCE" "$TARGET"
-          echo "FULL APK COPIED:"
-          ls -lh "$TARGET"
-          file "$TARGET"
+          APK_PATH=$(echo "$LARGEST" | cut -f2)
+          APK_SIZE=$(echo "$LARGEST" | cut -f1 | numfmt --to=iec-i --suffix=B)
+          
+          echo "LARGEST APK FOUND:"
+          echo "   PATH: $APK_PATH"
+          echo "   SIZE: $APK_SIZE"
+          
+          TARGET="GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk"
+          cp "$APK_PATH" "$TARGET"
+          
+          echo "COPIED TO: $TARGET"
+          echo "FINAL SIZE: $(du -h $TARGET | cut -f1)"
+          echo "FILE TYPE: $(file $TARGET)"
+          
+          echo "=== APK STRUCTURE (first 20 entries) ==="
           unzip -l "$TARGET" | head -20
 
       - name: Upload Artifact
@@ -69,7 +80,7 @@ jobs:
           gh release delete "v${{ steps.version.outputs.version }}" --yes || true
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "GoogleTranslateOverlay v${{ steps.version.outputs.version }}" \
-            --notes "Full APK, sleep 10s for write completion" \
+            --notes "APK found at: $(find . -name "*.apk" -type f -exec du -b {} + | sort -nr | head -1 | cut -f2)" \
             GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
