@@ -3,51 +3,67 @@ package com.google.android.apps.translate;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
+import android.widget.Toast;
 
 public class TranslateActivity extends Activity {
-    private static final String TARGET_PACKAGE = "dev.davidv.translator";
-    private static final String TARGET_ACTIVITY = ".ProcessTextActivity";
+
+    private static final String OFFLINE_PACKAGE = "dev.davidv.translator";
+    private static final String OFFLINE_MAIN_ACTIVITY = ".MainActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        handleIntent(getIntent());
-        finish();
-    }
 
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        handleIntent(intent);
-    }
+        // Start PreloadService to keep Offline-Translator in memory
+        Intent preloadIntent = new Intent(this, PreloadService.class);
+        startForegroundService(preloadIntent);
 
-    private void handleIntent(Intent intent) {
-        String action = intent.getAction();
-        String text = null;
-        Intent newIntent = new Intent(Intent.ACTION_PROCESS_TEXT);
-        newIntent.setComponent(new ComponentName(TARGET_PACKAGE, TARGET_PACKAGE + TARGET_ACTIVITY));
-        newIntent.setType("text/plain");
-        newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-
-        if (Intent.ACTION_PROCESS_TEXT.equals(action)) {
-            text = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
-            boolean readonly = intent.getBooleanExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, false);
-            newIntent.putExtra(Intent.EXTRA_PROCESS_TEXT, text);
-            if (readonly) newIntent.putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true);
-        } else if (Intent.ACTION_SEND.equals(action) && "text/plain".equals(intent.getType())) {
-            text = intent.getStringExtra(Intent.EXTRA_TEXT);
-            newIntent.putExtra(Intent.EXTRA_PROCESS_TEXT, text);
+        // Handle incoming intent and redirect to Offline-Translator
+        Intent incomingIntent = getIntent();
+        if (incomingIntent != null) {
+            try {
+                redirectToOffline(incomingIntent);
+            } catch (Exception e) {
+                Toast.makeText(this, "Error redirecting to translator", Toast.LENGTH_SHORT).show();
+            }
         } else {
-            text = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
-            if (text == null) text = intent.getStringExtra(Intent.EXTRA_TEXT);
-            newIntent.putExtra(Intent.EXTRA_PROCESS_TEXT, text);
+            Toast.makeText(this, "No text to translate", Toast.LENGTH_SHORT).show();
+        }
+        finish(); // Close overlay activity after redirect
+    }
+
+    private void redirectToOffline(Intent incomingIntent) {
+        Intent offlineIntent = new Intent(incomingIntent); // Copy original intent
+        offlineIntent.setComponent(new ComponentName(OFFLINE_PACKAGE, OFFLINE_PACKAGE + OFFLINE_MAIN_ACTIVITY));
+
+        // Handle different actions
+        String action = incomingIntent.getAction();
+        if (Intent.ACTION_SEND.equals(action)) {
+            // Sharing text
+            if ("text/plain".equals(incomingIntent.getType())) {
+                String sharedText = incomingIntent.getStringExtra(Intent.EXTRA_TEXT);
+                if (!TextUtils.isEmpty(sharedText)) {
+                    offlineIntent.putExtra(Intent.EXTRA_TEXT, sharedText);
+                }
+            }
+            // Sharing image
+            else if (incomingIntent.getType() != null && incomingIntent.getType().startsWith("image/")) {
+                Uri imageUri = incomingIntent.getParcelableExtra(Intent.EXTRA_STREAM);
+                if (imageUri != null) {
+                    offlineIntent.putExtra(Intent.EXTRA_STREAM, imageUri);
+                }
+            }
+        } else if ("android.intent.action.TRANSLATE".equals(action)) {
+            // Direct translate action
+            String textToTranslate = incomingIntent.getStringExtra(Intent.EXTRA_TEXT);
+            if (!TextUtils.isEmpty(textToTranslate)) {
+                offlineIntent.putExtra(Intent.EXTRA_TEXT, textToTranslate);
+            }
         }
 
-        try {
-            startActivity(newIntent);
-        } catch (Exception e) {
-            // Nie pokazuj Toast – żeby nie migało
-        }
+        startActivity(offlineIntent);
     }
 }
