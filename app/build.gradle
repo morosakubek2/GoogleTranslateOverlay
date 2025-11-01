@@ -3,6 +3,7 @@ plugins {
 }
 
 android {
+    namespace 'com.google.android.apps.translate'
     compileSdk 34
 
     defaultConfig {
@@ -24,6 +25,8 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+}
 
-    namespace 'com.google.android.apps.translate'
+dependencies {
+    // ZERO – tylko Android SDK
 }
