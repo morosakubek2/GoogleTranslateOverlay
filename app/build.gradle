@@ -35,23 +35,36 @@ android {
         }
     }
 
+    // === NAPRAWA JAVA 21 + JAVA 8 ===
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    // === TOOLCHAIN – REKOMENDOWANE ===
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(11)
+        }
     }
 }
 
-// === TASKI DO ODCZYTU WERSJI DLA CI ===
+// === TASKI DO WERSJI ===
 tasks.register('minimalProperties') {
     doLast {
-        def fullVersion = android.defaultConfig.versionName + android.productFlavors.minimal.versionNameSuffix
-        println "versionName: $fullVersion"
+        def v = android.defaultConfig.versionName + android.productFlavors.minimal.versionNameSuffix
+        println "versionName: $v"
     }
 }
 
 tasks.register('assistantProperties') {
     doLast {
-        def fullVersion = android.defaultConfig.versionName + android.productFlavors.assistant.versionNameSuffix
-        println "versionName: $fullVersion"
+        def v = android.defaultConfig.versionName + android.productFlavors.assistant.versionNameSuffix
+        println "versionName: $v"
     }
+}
+
+// === ZALEŻNOŚĆ DLA ASYSTENTA ===
+dependencies {
+    assistantImplementation "androidx.core:core:1.12.0"
 }
