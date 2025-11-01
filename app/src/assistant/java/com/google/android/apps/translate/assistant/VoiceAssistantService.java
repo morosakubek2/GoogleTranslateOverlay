@@ -5,8 +5,9 @@ import android.service.voice.VoiceInteractionSession;
 import android.os.Bundle;
 
 public class VoiceAssistantService extends VoiceInteractionService {
+
     @Override
-    public VoiceInteractionSession onCreateSession(String sessionId, Bundle args) {
+    public VoiceInteractionSession onNewSession(Bundle args) {
         return new TranslateSession(this);
     }
 }
