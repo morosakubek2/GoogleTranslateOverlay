@@ -13,22 +13,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # GRADLE SAM USTAWIA JAVĘ + CACHE WYŁĄCZONY
-      - name: Setup Gradle (no cache)
+      # USTAW GRADLE (bez cache)
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.9
-          cache-disabled: true   # ← WYŁĄCZA CACHE CAŁKOWICIE
+          cache-disabled: true
 
+      # GENERUJ gradlew JEŚLI NIE MA
+      - name: Generate Gradle Wrapper (if missing)
+        run: |
+          if [ ! -f "./gradlew" ]; then
+            echo "gradlew not found – generating..."
+            gradle wrapper --gradle-version 8.9 --distribution-type bin
+          else
+            echo "gradlew already exists"
+          fi
+          chmod +x ./gradlew
+
+      # BUILD
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace --info
 
+      # WERSJA
       - name: Get Version Name
         id: version
         run: |
           VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
+      # KOPIUJ APK
       - name: Copy Any APK
         run: |
           SOURCE=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
@@ -44,18 +58,20 @@ jobs:
           echo "APK: $(du -h $TARGET)"
           file "$TARGET"
 
+      # UPLOAD
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: APK
           path: GoogleTranslateOverlay-v*.apk
 
+      # RELEASE
       - name: Create Release
         run: |
           gh release delete "v${{ steps.version.outputs.version }}" --yes || true
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "GoogleTranslateOverlay v${{ steps.version.outputs.version }}" \
-            --notes "Auto-built, cache disabled" \
+            --notes "Auto-built, gradlew generated in CI" \
             GoogleTranslateOverlay-v${{ steps.version.outputs.version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
