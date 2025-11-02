@@ -47,7 +47,10 @@ android {
     }
 }
 
-// === TASKI DO WERSJI (bez zmian) ===
+dependencies {
+    // Usunięto wszystkie – SDK wystarcza
+}
+
 tasks.register('minimalProperties') {
     doLast {
         def v = android.defaultConfig.versionName + android.productFlavors.minimal.versionNameSuffix
@@ -60,9 +63,4 @@ tasks.register('assistantProperties') {
         def v = android.defaultConfig.versionName + android.productFlavors.assistant.versionNameSuffix
         println "versionName: $v"
     }
-}
-
-// === ZALEŻNOŚCI (USUŃ WSZYSTKO – NIE POTRZEBNE) ===
-dependencies {
-    // Żadne – SDK wystarcza
 }
