@@ -1,52 +1,30 @@
-package com.google.android.apps.translate;
+package com.google.android.apps.translate.assistant;
 
-import android.app.Activity;
-import android.content.ComponentName;
+import android.service.voice.VoiceInteractionSession;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
-import android.text.TextUtils;
+import android.content.ComponentName;
 
-public class TranslateActivity extends Activity {
+public class TranslateSession extends VoiceInteractionSession {
 
-    private static final String OFFLINE_PACKAGE = "dev.davidv.translator";
-    private static final String OFFLINE_MAIN_ACTIVITY = ".MainActivity";
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        Intent incomingIntent = getIntent();
-        if (incomingIntent != null) {
-            redirectToOffline(incomingIntent);
-        }
-        finish();  // Zakończ natychmiast, bez GUI
+    public TranslateSession(VoiceInteractionService service) {
+        super(service);
     }
 
-    private void redirectToOffline(Intent incomingIntent) {
-        Intent offlineIntent = new Intent(incomingIntent);
-        offlineIntent.setComponent(new ComponentName(OFFLINE_PACKAGE, OFFLINE_PACKAGE + OFFLINE_MAIN_ACTIVITY));
-
-        String action = incomingIntent.getAction();
-        if (Intent.ACTION_SEND.equals(action)) {
-            if ("text/plain".equals(incomingIntent.getType())) {
-                String sharedText = incomingIntent.getStringExtra(Intent.EXTRA_TEXT);
-                if (!TextUtils.isEmpty(sharedText)) {
-                    offlineIntent.putExtra(Intent.EXTRA_TEXT, sharedText);
-                }
-            } else if (incomingIntent.getType() != null && incomingIntent.getType().startsWith("image/")) {
-                Uri imageUri = incomingIntent.getParcelableExtra(Intent.EXTRA_STREAM);
-                if (imageUri != null) {
-                    offlineIntent.putExtra(Intent.EXTRA_STREAM, imageUri);
-                }
-            }
-        } else if ("android.intent.action.TRANSLATE".equals(action)) {
-            String textToTranslate = incomingIntent.getStringExtra(Intent.EXTRA_TEXT);
-            if (!TextUtils.isEmpty(textToTranslate)) {
-                offlineIntent.putExtra(Intent.EXTRA_TEXT, textToTranslate);
-            }
+    @Override
+    public void onHandleAssist(Bundle data, String[] hints, int[] offsets) {
+        String text = data.getString("android.intent.extra.TEXT");
+        if (text != null && !text.trim().isEmpty()) {
+            redirectToOffline(text);
         }
+        finish();
+    }
 
-        startActivity(offlineIntent);
+    private void redirectToOffline(String text) {
+        Intent intent = new Intent();
+        intent.setComponent(new ComponentName("dev.davidv.translator", "dev.davidv.translator.ProcessTextActivity"));
+        intent.putExtra(Intent.EXTRA_PROCESS_TEXT, text);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(intent);
     }
 }
