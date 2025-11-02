@@ -1,11 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <application>
 
-        <!-- Voice Interaction Service (for assist app replacement) -->
+        <!-- Service zastępujący asystenta (dodano meta-data – wymagane przez SDK) -->
         <service
             android:name=".assistant.VoiceAssistantService"
             android:exported="true"
@@ -13,9 +12,13 @@
             <intent-filter>
                 <action android:name="android.service.voice.VoiceInteractionService" />
             </intent-filter>
+            <!-- DODANO: Wymagana meta-data -->
+            <meta-data
+                android:name="android.voice_interaction"
+                android:resource="@xml/voice_interaction" />
         </service>
 
-        <!-- Setup Activity to configure as default assist app -->
+        <!-- Aktywność do konfiguracji (bez zmian) -->
         <activity
             android:name=".assistant.SetupAssistantActivity"
             android:exported="true"
@@ -26,8 +29,11 @@
             </intent-filter>
         </activity>
 
-        <!-- Shared TranslateActivity for handling SEND intents -->
-        <activity android:name=".TranslateActivity">
+        <!-- Użycie wspólnej TranslateActivity (bez zmian) -->
+        <activity
+            android:name=".TranslateActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.NoDisplay">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
