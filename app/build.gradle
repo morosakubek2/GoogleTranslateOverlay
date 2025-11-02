@@ -47,15 +47,11 @@ android {
     }
 }
 
-// === ZALEŻNOŚCI DLA ASYSTENTA ===
 dependencies {
-    // Tylko dla wersji assistant
-    assistantImplementation "androidx.core:core:1.12.0"
-    // KLUCZOWA ZALEŻNOŚĆ
-    assistantImplementation "com.google.android.android:android:34.0.0"
+    // Optional for core utilities (not required for assistant)
+    //assistantImplementation "androidx.core:core:1.12.0"
 }
 
-// === TASKI DO WERSJI ===
 tasks.register('minimalProperties') {
     doLast {
         def v = android.defaultConfig.versionName + android.productFlavors.minimal.versionNameSuffix
