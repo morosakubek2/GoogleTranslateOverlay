@@ -38,6 +38,8 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
+        // DODANO: Explicit bootClasspath – fix "cannot find symbol" w CI
+        bootClasspath System.getenv("ANDROID_HOME") + "/platforms/android-34/android.jar"
     }
 
     java {
@@ -45,10 +47,6 @@ android {
             languageVersion = JavaLanguageVersion.of(11)
         }
     }
-}
-
-dependencies {
-    // Usunięto wszystkie – SDK wystarcza
 }
 
 tasks.register('minimalProperties') {
