@@ -47,11 +47,7 @@ android {
     }
 }
 
-dependencies {
-    // Optional for core utilities (not required for assistant)
-    //assistantImplementation "androidx.core:core:1.12.0"
-}
-
+// === TASKI DO WERSJI (bez zmian) ===
 tasks.register('minimalProperties') {
     doLast {
         def v = android.defaultConfig.versionName + android.productFlavors.minimal.versionNameSuffix
@@ -64,4 +60,9 @@ tasks.register('assistantProperties') {
         def v = android.defaultConfig.versionName + android.productFlavors.assistant.versionNameSuffix
         println "versionName: $v"
     }
+}
+
+// === ZALEŻNOŚCI (USUŃ WSZYSTKO – NIE POTRZEBNE) ===
+dependencies {
+    // Żadne – SDK wystarcza
 }
