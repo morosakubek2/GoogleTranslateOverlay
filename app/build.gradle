@@ -47,6 +47,14 @@ android {
     }
 }
 
+dependencies {
+    implementation "androidx.core:core:1.12.0"
+    implementation "androidx.appcompat:appcompat:1.6.1"
+
+    // KLUCZOWE: android.jar dla VoiceInteractionService
+    compileOnly files("libs/android.jar")
+}
+
 tasks.register('minimalProperties') {
     doLast {
         def v = android.defaultConfig.versionName + android.productFlavors.minimal.versionNameSuffix
