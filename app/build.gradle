@@ -38,12 +38,19 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
+        // DODANO: Explicit bootClasspath – fix "cannot find symbol"
+        bootClasspath System.getenv("ANDROID_HOME") + "/platforms/android-34/android.jar"
     }
 
     java {
         toolchain {
             languageVersion = JavaLanguageVersion.of(11)
         }
+    }
+
+    // DODANO: Wyłącz incremental dla fix incremental errors
+    tasks.withType(JavaCompile) {
+        options.incremental = false
     }
 }
 
