@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId "com.google.android.apps.translate"
-        minSdk 23  // Wymagane dla VoiceInteractionService
+        minSdk 23
         targetSdk 34
         versionCode 5
         versionName "2"
@@ -39,19 +39,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
-
-    java {
-        toolchain {
-            languageVersion = JavaLanguageVersion.of(11)
-        }
-    }
 }
 
 dependencies {
-    implementation "androidx.core:core:1.12.0"
-    implementation "androidx.appcompat:appcompat:1.6.1"
-
-    // KLUCZOWE: android.jar dla VoiceInteractionService
+    // TYLKO TO – CZYSTA JAVA
     compileOnly files("libs/android.jar")
 }
 
