@@ -1,54 +1,62 @@
-name: Build & Release APK
+plugins {
+    id 'com.android.application'
+}
 
-on:
-  workflow_dispatch:
+android {
+    namespace 'com.google.android.apps.translate'
+    compileSdk 34
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    defaultConfig {
+        applicationId "com.google.android.apps.translate"
+        minSdk 23
+        targetSdk 34
+        versionCode 5
+        versionName "2"
+    }
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    flavorDimensions "mode"
+    productFlavors {
+        minimal {
+            dimension "mode"
+            applicationIdSuffix ".minimal"
+            versionNameSuffix "-minimal"
+        }
+        assistant {
+            dimension "mode"
+            applicationIdSuffix ".assistant"
+            versionNameSuffix "-assistant"
+        }
+    }
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+        // DZIAŁA BEZ WRAPPERA
+        bootClasspath "${android.sdkDirectory}/platforms/android-34/android.jar"
+    }
+}
 
-      - name: Accept SDK Licenses
-        run: yes | sdkmanager --licenses
+dependencies {
+    // NIC
+}
 
-      - name: Install SDK Components
-        run: |
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+tasks.register('minimalProperties') {
+    doLast {
+        def v = android.defaultConfig.versionName + android.productFlavors.minimal.versionNameSuffix
+        println "versionName: $v"
+    }
+}
 
-      # KLUCZOWE: Użyj Gradle 8.10 z cache
-      - name: Setup Gradle 8.10
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.10
-          cache-disabled: false
-
-      # BEZ ./gradlew – Gradle z actions
-      - name: Build APKs
-        run: |
-          gradle clean
-          gradle assembleMinimalRelease --stacktrace
-          gradle assembleAssistantRelease --stacktrace
-
-      - name: Get Version Names
-        id: version
-        run: |
-          MINIMAL=$(gradle -q minimalProperties | grep "versionName:" | awk '{print $2}')
-          ASSISTANT=$(gradle -q assistantProperties | grep "versionName:" | awk '{print $2}')
-          echo "minimal_version=$MINIMAL" >> $GITHUB_OUTPUT
-          echo "assistant_version=$ASSISTANT" >> $GITHUB_OUTPUT
-
-      # ... reszta (podpisywanie, upload) bez zmian ...
+tasks.register('assistantProperties') {
+    doLast {
+        def v = android.defaultConfig.versionName + android.productFlavors.assistant.versionNameSuffix
+        println "versionName: $v"
+    }
+}
