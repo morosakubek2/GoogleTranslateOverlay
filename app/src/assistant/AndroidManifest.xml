@@ -1,38 +1,27 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <!-- Uprawnienie do usługi dostępności -->
+    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
 
     <application>
 
+        <!-- Główna usługa dostępności -->
         <service
-            android:name=".assistant.VoiceAssistantService"
+            android:name=".assistant.TextAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="true"
-            android:permission="android.permission.BIND_VOICE_INTERACTION">
+            android:label="Text Translator Assistant">
             <intent-filter>
-                <action android:name="android.service.voice.VoiceInteractionService" />
+                <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
+            <!-- KLUCZOWE: referencja do konfiguracji -->
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_config" />
         </service>
 
-        <activity
-            android:name=".assistant.SetupAssistantActivity"
-            android:exported="true"
-            android:theme="@android:style/Theme.NoDisplay">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.VOICE" />
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name=".TranslateActivity"
-            android:exported="true"
-            android:theme="@android:style/Theme.NoDisplay">
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
-            </intent-filter>
-        </activity>
+        <!-- Opcjonalnie: activity do ręcznego uruchomienia -->
+        <!-- <activity android:name=".assistant.ManualTriggerActivity" ... /> -->
 
     </application>
 </manifest>
