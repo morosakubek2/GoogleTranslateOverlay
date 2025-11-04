@@ -10,7 +10,7 @@ import android.text.TextUtils;
 
 public class TranslateSession extends VoiceInteractionSession {
 
-    public TranslateSession(VoiceAssistantService service) {
+    public TranslateSession(VoiceInteractionService service) {
         super(service);
     }
 
@@ -18,10 +18,10 @@ public class TranslateSession extends VoiceInteractionSession {
     public void onHandleAssist(Bundle data, AssistStructure structure, android.app.assist.AssistContent content) {
         String selectedText = extractSelectedText(structure);
         if (!TextUtils.isEmpty(selectedText)) {
-            redirectToTranslator(selectedText);
+            redirectToOffline(selectedText);
+        } else {
+            finish(); // Nic nie ma – zaprzestaj
         }
-        // Jeśli nie ma tekstu → nic nie robimy, po prostu finish()
-        finish();
     }
 
     private String extractSelectedText(AssistStructure structure) {
@@ -30,38 +30,29 @@ public class TranslateSession extends VoiceInteractionSession {
         for (int i = 0; i < structure.getWindowNodeCount(); i++) {
             AssistStructure.WindowNode window = structure.getWindowNodeAt(i);
             ViewNode root = window.getRootViewNode();
-            String text = traverse(root);
-            if (!TextUtils.isEmpty(text)) return text;
+            String text = traverseNode(root);
+            if (text != null) return text;
         }
         return null;
     }
 
-    private String traverse(ViewNode node) {
+    private String traverseNode(ViewNode node) {
         if (node == null) return null;
 
-        // Sprawdź, czy jest zaznaczenie
-        if (node.getText() != null
-            && node.getTextSelectionStart() >= 0
-            && node.getTextSelectionEnd() > node.getTextSelectionStart()) {
-
-            return node.getText()
-                .subSequence(node.getTextSelectionStart(), node.getTextSelectionEnd())
-                .toString();
+        if (node.getText() != null && node.getTextSelectionStart() >= 0 && node.getTextSelectionEnd() > node.getTextSelectionStart()) {
+            return node.getText().subSequence(node.getTextSelectionStart(), node.getTextSelectionEnd()).toString();
         }
 
         for (int i = 0; i < node.getChildCount(); i++) {
-            String found = traverse(node.getChildAt(i));
-            if (found != null) return found;
+            String text = traverseNode(node.getChildAt(i));
+            if (text != null) return text;
         }
         return null;
     }
 
-    private void redirectToTranslator(String text) {
+    private void redirectToOffline(String text) {
         Intent intent = new Intent();
-        intent.setComponent(new ComponentName(
-            "dev.davidv.translator",
-            "dev.davidv.translator.ProcessTextActivity"
-        ));
+        intent.setComponent(new ComponentName("dev.davidv.translator", "dev.davidv.translator.ProcessTextActivity"));
         intent.putExtra(Intent.EXTRA_PROCESS_TEXT, text);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         getContext().startActivity(intent);
