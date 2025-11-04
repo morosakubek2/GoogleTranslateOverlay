@@ -1,4 +1,0 @@
-<voice-interaction-service xmlns:android="http://schemas.android.com/apk/res/android"
-android:sessionService=".assistant.VoiceAssistantService"
-android:recognitionService=".assistant.VoiceAssistantService"
-android:settingsActivity=".assistant.SetupAssistantActivity" />
