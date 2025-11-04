@@ -1,11 +1,9 @@
 package com.google.android.apps.translate.assistant;
 
 import android.service.voice.VoiceInteractionSession;
+import android.service.voice.VoiceInteractionSession.AssistState;
 import android.content.Intent;
-import android.os.Bundle;
 import android.content.ComponentName;
-import android.app.assist.AssistStructure;
-import android.app.assist.AssistStructure.ViewNode;
 import android.text.TextUtils;
 
 public class TranslateSession extends VoiceInteractionSession {
@@ -15,41 +13,16 @@ public class TranslateSession extends VoiceInteractionSession {
     }
 
     @Override
-    public void onHandleAssist(Bundle data, AssistStructure structure, AssistContent content) {
-        String selectedText = extractSelectedText(structure);
-        if (!TextUtils.isEmpty(selectedText)) {
-            redirectToOffline(selectedText);
+    public void onHandleAssist(AssistState state) {
+        super.onHandleAssist(state);
+        
+        // Pobierz zaznaczony tekst z AssistState
+        String text = state.getSelectedText();
+        if (!TextUtils.isEmpty(text)) {
+            redirectToOffline(text);
         } else {
             finish(); // Zaprzestaj, jeśli nie ma zaznaczonego tekstu
         }
-    }
-
-    private String extractSelectedText(AssistStructure structure) {
-        if (structure == null) return null;
-
-        int windowCount = structure.getWindowNodeCount();
-        for (int i = 0; i < windowCount; i++) {
-            AssistStructure.WindowNode windowNode = structure.getWindowNodeAt(i);
-            ViewNode root = windowNode.getRootViewNode();
-            return traverseNode(root);
-        }
-        return null;
-    }
-
-    private String traverseNode(ViewNode node) {
-        if (node == null) return null;
-
-        if (node.getText() != null && node.getTextSelectionStart() >= 0 && node.getTextSelectionEnd() > node.getTextSelectionStart()) {
-            return node.getText().subSequence(node.getTextSelectionStart(), node.getTextSelectionEnd()).toString();
-        }
-
-        int childCount = node.getChildCount();
-        for (int i = 0; i < childCount; i++) {
-            String text = traverseNode(node.getChildAt(i));
-            if (!TextUtils.isEmpty(text)) return text;
-        }
-
-        return null;
     }
 
     private void redirectToOffline(String text) {
