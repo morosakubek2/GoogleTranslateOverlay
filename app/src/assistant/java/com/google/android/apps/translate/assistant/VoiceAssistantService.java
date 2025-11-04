@@ -1,8 +1,8 @@
 package com.google.android.apps.translate.assistant;
 
+import android.os.Bundle;
 import android.service.voice.VoiceInteractionService;
 import android.service.voice.VoiceInteractionSession;
-import android.os.Bundle;
 
 public class VoiceAssistantService extends VoiceInteractionService {
 
