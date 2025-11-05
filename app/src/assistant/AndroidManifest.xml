@@ -3,6 +3,7 @@
     <uses-permission android:name="android.permission.BIND_VOICE_INTERACTION" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" /> 
 
     <application>
         <!-- VoiceInteractionService - MUSI mieć pełną kwalifikację -->
