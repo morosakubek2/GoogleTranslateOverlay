@@ -1,51 +1,46 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="android.permission.BIND_VOICE_INTERACTION" />
+
     <application>
 
-        <!-- Share tekst/obraz -->
-        <activity android:name=".TranslateActivity">
-            <intent-filter
-                android:label="!Translate"
-                android:icon="@android:drawable/ic_menu_share">
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
-            </intent-filter>
-            <intent-filter
-                android:label="!Translate"
-                android:icon="@android:drawable/ic_menu_share">
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="image/*" />
-            </intent-filter>
-            <!-- TRANSLATE action - dla niektórych aplikacji -->
-            <intent-filter
-                android:label="!Translate"
-                android:icon="@android:drawable/ic_menu_search">
-                <action android:name="android.intent.action.TRANSLATE" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
-            </intent-filter>
-        </activity>
-
-        <!-- PROCESS_TEXT -->
-        <activity
-            android:name=".copydrop.gm3.TapToTranslateActivity"
+        <!-- VoiceInteractionService - główny serwis asystenta -->
+        <service
+            android:name=".assistant.VoiceAssistantService"
             android:exported="true"
-            android:excludeFromRecents="true"
-            android:theme="@android:style/Theme.NoDisplay">
-            <intent-filter
-                android:label="!Translate"
-                android:icon="@android:drawable/ic_menu_search">
-                <action android:name="android.intent.action.PROCESS_TEXT" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
+            android:permission="android.permission.BIND_VOICE_INTERACTION">
+            <meta-data
+                android:name="android.voice_interaction"
+                android:resource="@xml/voice_interaction_service" />
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionService" />
             </intent-filter>
-            <intent-filter
-                android:label="!Translate"
-                android:icon="@android:drawable/ic_menu_search">
-                <action android:name="android.intent.action.PROCESS_TEXT" />
-                <category android:name="android.intent.category.ALTERNATIVE" />
-                <data android:mimeType="text/plain" />
+        </service>
+
+        <!-- VoiceInteractionSessionService - obsługuje sesje asystenta -->
+        <service
+            android:name=".assistant.TranslateSessionService"
+            android:exported="true"
+            android:permission="android.permission.BIND_VOICE_INTERACTION">
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionSessionService" />
+            </intent-filter>
+        </service>
+
+        <!-- Aktywność do ustawień asystenta -->
+        <activity
+            android:name=".assistant.SetupAssistantActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.NoDisplay"
+            android:label="Google Translate Overlay">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
