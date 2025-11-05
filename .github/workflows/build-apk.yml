@@ -30,10 +30,9 @@ jobs:
           sdkmanager --update
           sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
 
-      - name: Copy android.jar to libs
+      - name: Create required directories for assistant
         run: |
-          mkdir -p app/libs
-          cp $ANDROID_HOME/platforms/android-34/android.jar app/libs/android.jar
+          mkdir -p app/src/assistant/res/xml
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -82,7 +81,7 @@ jobs:
 
       - name: Sign Minimal APK
         run: |
-          UNSIGNED=$(find app/build/outputs/apk/minimal/release -name "*-unsigned.apk" | head -1)
+          UNSIGNED=$(find app/build/outputs/apk/minimal/release -name "*.apk" | head -1)
           SIGNED="GoogleTranslateOverlay-minimal-v${{ steps.version.outputs.minimal_version }}-signed.apk"
           $ANDROID_HOME/build-tools/34.0.0/zipalign -v -p 4 "$UNSIGNED" aligned_minimal.apk
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
@@ -115,7 +114,7 @@ jobs:
 
       - name: Sign Assistant APK
         run: |
-          UNSIGNED=$(find app/build/outputs/apk/assistant/release -name "*-unsigned.apk" | head -1)
+          UNSIGNED=$(find app/build/outputs/apk/assistant/release -name "*.apk" | head -1)
           SIGNED="GoogleTranslateOverlay-assistant-v${{ steps.version.outputs.assistant_version }}-signed.apk"
           $ANDROID_HOME/build-tools/34.0.0/zipalign -v -p 4 "$UNSIGNED" aligned_assistant.apk
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
