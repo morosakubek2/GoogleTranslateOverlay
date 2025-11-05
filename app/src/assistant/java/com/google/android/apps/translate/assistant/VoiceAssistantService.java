@@ -19,6 +19,12 @@ public class VoiceAssistantService extends VoiceInteractionService {
     }
 
     @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d("GOTr", "VoiceAssistantService start command");
+        return START_NOT_STICKY;
+    }
+
+    @Override
     public void onShutdown() {
         super.onShutdown();
         Log.d("GOTr", "VoiceAssistantService shutdown");
