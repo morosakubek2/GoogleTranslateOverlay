@@ -23,24 +23,92 @@ public class TranslateSession extends VoiceInteractionSession {
     public void onHandleAssist(Bundle data, AssistStructure structure, android.app.assist.AssistContent content) {
         Log.d("GOTranslate", "=== ASSIST START ===");
         
-        String selectedText = extractSelectedText(structure);
-        
-        if (!TextUtils.isEmpty(selectedText)) {
-            Log.d("GOTranslate", "SELECTED TEXT from structure: " + selectedText);
-            redirectToTranslateActivity(selectedText);
-        } else {
-            Log.d("GOTranslate", "No text selected in structure - checking clipboard");
-            String clipboardText = getTextFromClipboard();
-            if (!TextUtils.isEmpty(clipboardText)) {
-                Log.d("GOTranslate", "SELECTED TEXT from clipboard: " + clipboardText);
-                redirectToTranslateActivity(clipboardText);
-            } else {
-                Log.d("GOTranslate", "No text in clipboard either");
+        try {
+            // 1. SPRÓBUJ ZNALEŹĆ TEKST W ASSISTCONTENT (nowsze API)
+            if (content != null) {
+                Log.d("GOTranslate", "Checking AssistContent...");
+                
+                Intent intent = content.getIntent();
+                if (intent != null) {
+                    Log.d("GOTranslate", "AssistContent Intent: " + intent.getAction());
+                    if (intent.hasExtra(Intent.EXTRA_PROCESS_TEXT)) {
+                        String processText = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
+                        if (!TextUtils.isEmpty(processText)) {
+                            Log.d("GOTranslate", "FOUND TEXT in AssistContent EXTRA_PROCESS_TEXT: " + processText);
+                            redirectToTranslateActivity(processText);
+                            finish();
+                            return;
+                        }
+                    }
+                    if (intent.hasExtra(Intent.EXTRA_TEXT)) {
+                        String extraText = intent.getStringExtra(Intent.EXTRA_TEXT);
+                        if (!TextUtils.isEmpty(extraText)) {
+                            Log.d("GOTranslate", "FOUND TEXT in AssistContent EXTRA_TEXT: " + extraText);
+                            redirectToTranslateActivity(extraText);
+                            finish();
+                            return;
+                        }
+                    }
+                }
+                
+                ClipData clipData = content.getClipData();
+                if (clipData != null && clipData.getItemCount() > 0) {
+                    CharSequence text = clipData.getItemAt(0).getText();
+                    if (!TextUtils.isEmpty(text)) {
+                        Log.d("GOTranslate", "FOUND TEXT in AssistContent ClipData: " + text);
+                        redirectToTranslateActivity(text.toString());
+                        finish();
+                        return;
+                    }
+                }
             }
+
+            // 2. SPRÓBUJ ZNALEŹĆ TEKST W BUNDLE
+            if (data != null) {
+                Log.d("GOTranslate", "Checking Bundle data...");
+                Log.d("GOTranslate", "Bundle keys: " + data.keySet());
+                
+                String text = data.getString(Intent.EXTRA_PROCESS_TEXT);
+                if (!TextUtils.isEmpty(text)) {
+                    Log.d("GOTranslate", "FOUND TEXT in Bundle EXTRA_PROCESS_TEXT: " + text);
+                    redirectToTranslateActivity(text);
+                    finish();
+                    return;
+                }
+                
+                text = data.getString(Intent.EXTRA_TEXT);
+                if (!TextUtils.isEmpty(text)) {
+                    Log.d("GOTranslate", "FOUND TEXT in Bundle EXTRA_TEXT: " + text);
+                    redirectToTranslateActivity(text);
+                    finish();
+                    return;
+                }
+            }
+
+            // 3. DOPIERO POTEM SPRÓBUJ ASSISTSTRUCTURE
+            Log.d("GOTranslate", "Checking AssistStructure...");
+            String selectedText = extractSelectedText(structure);
+            
+            if (!TextUtils.isEmpty(selectedText)) {
+                Log.d("GOTranslate", "SELECTED TEXT from structure: " + selectedText);
+                redirectToTranslateActivity(selectedText);
+            } else {
+                Log.d("GOTranslate", "No text selected in structure - checking clipboard");
+                String clipboardText = getTextFromClipboard();
+                if (!TextUtils.isEmpty(clipboardText)) {
+                    Log.d("GOTranslate", "SELECTED TEXT from clipboard: " + clipboardText);
+                    redirectToTranslateActivity(clipboardText);
+                } else {
+                    Log.d("GOTranslate", "No text in clipboard either");
+                }
+            }
+            
+        } catch (Exception e) {
+            Log.e("GOTranslate", "Error in onHandleAssist", e);
+        } finally {
+            Log.d("GOTranslate", "=== ASSIST END ===");
+            finish();
         }
-        
-        Log.d("GOTranslate", "=== ASSIST END ===");
-        finish();
     }
 
     private String extractSelectedText(AssistStructure structure) {
