@@ -10,19 +10,21 @@ android {
         applicationId "com.google.android.apps.translate"
         minSdk 21
         targetSdk 34
-        versionCode 5
-        versionName "2"
+        versionCode 6
+        versionName "2.1"
     }
 
     flavorDimensions "mode"
     productFlavors {
         minimal {
             dimension "mode"
+            applicationId "com.google.android.apps.translate"
             versionNameSuffix "-minimal"
             minSdk 21
         }
         assistant {
             dimension "mode"
+            applicationId "com.google.android.apps.translate"
             versionNameSuffix "-assistant"
             minSdk 26  // Android 8.0+ dla VoiceInteractionService
         }
@@ -45,11 +47,6 @@ android {
             languageVersion = JavaLanguageVersion.of(11)
         }
     }
-}
-
-dependencies {
-    // Powiadomienia dla assistant
-    implementation 'androidx.core:core:1.12.0'
 }
 
 tasks.register('minimalProperties') {
