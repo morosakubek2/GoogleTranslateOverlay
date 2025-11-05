@@ -2,11 +2,9 @@
 
     <uses-permission android:name="android.permission.BIND_VOICE_INTERACTION" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" /> 
 
     <application>
-        <!-- VoiceInteractionService - MUSI mieć pełną kwalifikację -->
+        <!-- VoiceInteractionService -->
         <service
             android:name=".assistant.VoiceAssistantService"
             android:exported="true"
@@ -17,18 +15,16 @@
                 android:resource="@xml/voice_interaction_service" />
             <intent-filter>
                 <action android:name="android.service.voice.VoiceInteractionService" />
-                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
 
-        <!-- VoiceInteractionSessionService - również pełna kwalifikacja -->
+        <!-- VoiceInteractionSessionService -->
         <service
             android:name=".assistant.TranslateSessionService"
             android:exported="true"
             android:permission="android.permission.BIND_VOICE_INTERACTION">
             <intent-filter>
                 <action android:name="android.service.voice.VoiceInteractionSessionService" />
-                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
 
@@ -46,7 +42,7 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- Aktywność asystenta - DODAJEMY dodatkowe intent-filter -->
+        <!-- Setup Activity -->
         <activity
             android:name=".assistant.SetupAssistantActivity"
             android:exported="true"
@@ -60,14 +56,9 @@
                 <action android:name="android.intent.action.ASSIST" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-            <!-- DODANE: Ważne dla asystenta -->
-            <intent-filter>
-                <action android:name="android.service.voice.VoiceInteractionService" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
         </activity>
 
-        <!-- Reszta bez zmian -->
+        <!-- TranslateActivity -->
         <activity
             android:name=".TranslateActivity"
             android:exported="true"
@@ -96,6 +87,7 @@
             </intent-filter>
         </activity>
 
+        <!-- TapToTranslateActivity -->
         <activity
             android:name=".copydrop.gm3.TapToTranslateActivity"
             android:exported="true"
