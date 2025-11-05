@@ -15,7 +15,7 @@ public class TapToTranslateActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d("GOTranslate", "TapToTranslateActivity started");
+        Log.d("GOTr", "TapToTranslateActivity started");
 
         Intent incomingIntent = getIntent();
         if (incomingIntent != null) {
@@ -25,7 +25,7 @@ public class TapToTranslateActivity extends Activity {
     }
 
     private void redirectToOffline(Intent incomingIntent) {
-        Log.d("GOTranslate", "Redirecting to offline translator (PROCESS_TEXT)");
+        Log.d("GOTr", "Redirecting to offline translator (PROCESS_TEXT)");
         
         Intent offlineIntent = new Intent(incomingIntent);
         offlineIntent.setComponent(new ComponentName(OFFLINE_PACKAGE, OFFLINE_PACKAGE + OFFLINE_PROCESS_ACTIVITY));
@@ -36,11 +36,11 @@ public class TapToTranslateActivity extends Activity {
             if (!TextUtils.isEmpty(processText)) {
                 offlineIntent.putExtra(Intent.EXTRA_PROCESS_TEXT, processText);
                 offlineIntent.putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, incomingIntent.getBooleanExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, false));
-                Log.d("GOTranslate", "Processing text: " + processText);
+                Log.d("GOTr", "Processing text: " + processText);
             }
         }
 
         startActivity(offlineIntent);
-        Log.d("GOTranslate", "Successfully started offline translator (PROCESS_TEXT)");
+        Log.d("GOTr", "Successfully started offline translator (PROCESS_TEXT)");
     }
 }
