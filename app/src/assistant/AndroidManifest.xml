@@ -4,7 +4,7 @@
 
     <application>
 
-        <!-- VoiceInteractionService -->
+        <!-- VoiceInteractionService - główny serwis asystenta -->
         <service
             android:name=".assistant.VoiceAssistantService"
             android:exported="true"
@@ -17,24 +17,26 @@
             </intent-filter>
         </service>
 
-        <!-- VoiceInteractionSessionService -->
+        <!-- VoiceInteractionSessionService - obsługuje sesje asystenta -->
         <service
-            android:name=".assistant.VoiceInteractionSessionService"
+            android:name=".assistant.TranslateSessionService"
             android:exported="true"
             android:permission="android.permission.BIND_VOICE_INTERACTION">
-            <intent-filter>
-                <action android:name="android.service.voice.VoiceInteractionSessionService" />
-            </intent-filter>
         </service>
 
-        <!-- Setup Activity -->
+        <!-- Aktywność do ustawień asystenta -->
         <activity
             android:name=".assistant.SetupAssistantActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.NoDisplay">
+            android:theme="@android:style/Theme.NoDisplay"
+            android:label="Google Translate Overlay">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.VOICE" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
