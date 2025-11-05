@@ -82,7 +82,7 @@ jobs:
       - name: Sign Minimal APK
         run: |
           UNSIGNED=$(find app/build/outputs/apk/minimal/debug -name "*.apk" | head -1)
-          SIGNED="GoogleTranslateOverlay-minimal-v${{ steps.version.outputs.minimal_version }}-debug.apk"
+          SIGNED="GoogleTranslateOverlay-v${{ steps.version.outputs.minimal_version }}-debug.apk"
           $ANDROID_HOME/build-tools/34.0.0/zipalign -v -p 4 "$UNSIGNED" aligned_minimal.apk
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
             --ks translateoverlay_minimal.jks \
@@ -115,7 +115,7 @@ jobs:
       - name: Sign Assistant APK
         run: |
           UNSIGNED=$(find app/build/outputs/apk/assistant/debug -name "*.apk" | head -1)
-          SIGNED="GoogleTranslateOverlay-assistant-v${{ steps.version.outputs.assistant_version }}-debug.apk"
+          SIGNED="GoogleTranslateOverlay-v${{ steps.version.outputs.assistant_version }}-debug.apk"
           $ANDROID_HOME/build-tools/34.0.0/zipalign -v -p 4 "$UNSIGNED" aligned_assistant.apk
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
             --ks translateoverlay_assistant.jks \
@@ -134,8 +134,7 @@ jobs:
         with:
           name: APKs-DEBUG
           path: |
-            GoogleTranslateOverlay-minimal-*-debug.apk
-            GoogleTranslateOverlay-assistant-*-debug.apk
+            GoogleTranslateOverlay-v*-debug.apk
 
       - name: Create Debug Release
         run: |
@@ -143,7 +142,7 @@ jobs:
           gh release create "debug-v${{ steps.version.outputs.assistant_version }}" \
             --title "GoogleTranslateOverlay DEBUG v${{ steps.version.outputs.assistant_version }}" \
             --notes "DEBUG VERSION - WITH LOGS\nUse for testing only" \
-            GoogleTranslateOverlay-minimal-v${{ steps.version.outputs.minimal_version }}-debug.apk \
-            GoogleTranslateOverlay-assistant-v${{ steps.version.outputs.assistant_version }}-debug.apk
+            GoogleTranslateOverlay-v${{ steps.version.outputs.minimal_version }}-debug.apk \
+            GoogleTranslateOverlay-v${{ steps.version.outputs.assistant_version }}-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
