@@ -54,11 +54,7 @@ public class TranslateActivity extends Activity {
             }
         }
 
-        try {
-            startActivity(offlineIntent);
-            Log.d("GOTranslate", "Successfully started offline translator");
-        } catch (Exception e) {
-            Log.e("GOTranslate", "Failed to start offline translator", e);
-        }
+        startActivity(offlineIntent);
+        Log.d("GOTranslate", "Successfully started offline translator");
     }
 }
