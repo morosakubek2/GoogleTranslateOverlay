@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.service.voice.VoiceInteractionSession;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 public class TranslateSession extends VoiceInteractionSession {
 
@@ -20,10 +21,7 @@ public class TranslateSession extends VoiceInteractionSession {
     @Override
     public void onShow(Bundle args, int showFlags) {
         super.onShow(args, showFlags);
-        Log.d("GOTr", "onShow called with flags: " + showFlags);
-        
-        // Uruchom sesję Accessibility Service
-        startAccessibilitySession();
+        Log.d("GOTr", "onShow called");
     }
 
     @Override
@@ -31,67 +29,55 @@ public class TranslateSession extends VoiceInteractionSession {
         Log.d("GOTr", "=== ASSIST START ===");
         
         try {
-            // 1. SPRÓBUJ ZNALEŹĆ TEKST W ASSISTCONTENT
-            if (content != null) {
-                Log.d("GOTr", "Checking AssistContent...");
-                
+            // 1. Sprawdź AssistContent
+            if (content != null && content.getIntent() != null) {
                 Intent intent = content.getIntent();
-                if (intent != null) {
-                    Log.d("GOTr", "AssistContent Intent: " + intent.getAction());
-                    if (intent.hasExtra(Intent.EXTRA_PROCESS_TEXT)) {
-                        String processText = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
-                        if (!TextUtils.isEmpty(processText)) {
-                            Log.d("GOTr", "FOUND TEXT in AssistContent EXTRA_PROCESS_TEXT: " + processText);
-                            redirectToTranslateActivity(processText);
-                            finish();
-                            return;
-                        }
-                    }
-                }
-            }
-
-            // 2. SPRÓBUJ ZNALEŹĆ TEKST W BUNDLE
-            if (data != null) {
-                Log.d("GOTr", "Checking Bundle data...");
-                
-                String text = data.getString(Intent.EXTRA_PROCESS_TEXT);
+                String text = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
                 if (!TextUtils.isEmpty(text)) {
-                    Log.d("GOTr", "FOUND TEXT in Bundle EXTRA_PROCESS_TEXT: " + text);
+                    Log.d("GOTr", "Found text in AssistContent: " + text);
                     redirectToTranslateActivity(text);
                     finish();
                     return;
                 }
             }
 
-            // 3. SPRÓBUJ ASSISTSTRUCTURE
-            Log.d("GOTr", "Checking AssistStructure...");
-            String selectedText = extractSelectedText(structure);
-            
-            if (!TextUtils.isEmpty(selectedText)) {
-                Log.d("GOTr", "SELECTED TEXT from structure: " + selectedText);
-                redirectToTranslateActivity(selectedText);
-            } else {
-                Log.d("GOTr", "No text found via Assist API - waiting for Accessibility Service");
-                // Accessibility Service będzie kontynuować wyszukiwanie
+            // 2. Sprawdź Bundle
+            if (data != null) {
+                String text = data.getString(Intent.EXTRA_PROCESS_TEXT);
+                if (!TextUtils.isEmpty(text)) {
+                    Log.d("GOTr", "Found text in Bundle: " + text);
+                    redirectToTranslateActivity(text);
+                    finish();
+                    return;
+                }
             }
+
+            // 3. Sprawdź AssistStructure
+            String selectedText = extractSelectedText(structure);
+            if (!TextUtils.isEmpty(selectedText)) {
+                Log.d("GOTr", "Found text in AssistStructure: " + selectedText);
+                redirectToTranslateActivity(selectedText);
+                finish();
+                return;
+            }
+
+            // 4. Fallback - użyj AccessibilityService
+            Log.d("GOTr", "No text found - starting AccessibilityService session");
+            Toast.makeText(getContext(), "Searching for selected text...", Toast.LENGTH_SHORT).show();
+            TranslateAccessibilityService.startSession();
+            
+            // Finish session - AccessibilityService będzie działał w tle
+            finish();
             
         } catch (Exception e) {
             Log.e("GOTr", "Error in onHandleAssist", e);
+            Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            finish();
         }
-        // NIE wywołujemy finish() - pozwalamy Accessibility Service działać
-    }
-
-    private void startAccessibilitySession() {
-        Log.d("GOTr", "Starting accessibility session from TranslateSession");
-        // Bezpośrednie uruchomienie Accessibility Service
-        Intent serviceIntent = new Intent(getContext(), TranslateAccessibilityService.class);
-        serviceIntent.setAction("START_SESSION");
-        getContext().startService(serviceIntent);
     }
 
     private String extractSelectedText(AssistStructure structure) {
         if (structure == null) {
-            Log.w("GOTr", "extractSelectedText: structure is null");
             return null;
         }
 
@@ -100,11 +86,9 @@ public class TranslateSession extends VoiceInteractionSession {
             ViewNode root = window.getRootViewNode();
             String text = traverseNode(root);
             if (text != null) {
-                Log.d("GOTr", "Found text in window " + i);
                 return text;
             }
         }
-        Log.d("GOTr", "No selected text found in any window");
         return null;
     }
 
@@ -117,9 +101,7 @@ public class TranslateSession extends VoiceInteractionSession {
             int end = node.getTextSelectionEnd();
             
             if (start >= 0 && end > start && end <= nodeText.length()) {
-                String selected = nodeText.subSequence(start, end).toString();
-                Log.d("GOTr", "Found selection: " + selected);
-                return selected;
+                return nodeText.subSequence(start, end).toString();
             }
         }
 
@@ -141,16 +123,6 @@ public class TranslateSession extends VoiceInteractionSession {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         
         getContext().startActivity(intent);
-        Log.d("GOTr", "Successfully redirected to TranslateActivity with text: " + text);
-        
-        // Zamknij sesję asystenta po przekierowaniu
-        finish();
-    }
-
-    @Override
-    public void onHide() {
-        super.onHide();
-        Log.d("GOTr", "TranslateSession hidden");
-        finish();
+        Log.d("GOTr", "Redirected to TranslateActivity");
     }
 }
