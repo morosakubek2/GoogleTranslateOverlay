@@ -8,41 +8,35 @@ import android.util.Log;
 
 public class SetupAssistantActivity extends Activity {
     
-    private static final String TAG = "SetupAssistantActivity";
-    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        Log.d(TAG, "onCreate - action: " + getIntent().getAction());
+        Log.d("GOTranslate", "SetupAssistantActivity started - action: " + getIntent().getAction());
+        Log.d("GOTranslate", "SetupAssistantActivity - flags: " + getIntent().getFlags());
+        Log.d("GOTranslate", "SetupAssistantActivity - categories: " + getIntent().getCategories());
         
         String action = getIntent().getAction();
         
-        // Jeśli wywołano z launchera - otwórz ustawienia asystenta
         if (Intent.ACTION_MAIN.equals(action)) {
-            Log.d(TAG, "Launched from launcher - opening assistant settings");
+            Log.d("GOTranslate", "Launched from launcher - opening assistant settings");
             try {
                 startActivity(new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS));
             } catch (Exception e) {
-                Log.e(TAG, "Failed to open voice settings", e);
-                // Fallback do głównych ustawień
+                Log.e("GOTranslate", "Failed to open voice settings", e);
                 startActivity(new Intent(Settings.ACTION_SETTINGS));
             }
             finish();
             return;
         }
         
-        // Jeśli wywołano jako ASSIST - to znaczy że użytkownik wywołał asystenta
-        // W tym przypadku Android sam wywołuje VoiceInteractionService
         if (Intent.ACTION_ASSIST.equals(action)) {
-            Log.d(TAG, "Called with ACTION_ASSIST - system will handle via VoiceInteractionService");
-            // Nie robimy nic - system sam przekieruje do VoiceInteractionService
+            Log.d("GOTranslate", "Called with ACTION_ASSIST - system will handle via VoiceInteractionService");
             finish();
             return;
         }
         
-        // Inne przypadki - zamknij
-        Log.d(TAG, "Unknown action, finishing");
+        Log.d("GOTranslate", "Unknown action, finishing");
         finish();
     }
 }
