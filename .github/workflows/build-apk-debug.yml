@@ -1,4 +1,4 @@
-name: Build & Release APK - RELEASE
+name: Build & Release APK - DEBUG
 
 on:
   workflow_dispatch:
@@ -58,17 +58,10 @@ jobs:
           echo "minimal_version=$MINIMAL" >> $GITHUB_OUTPUT
           echo "assistant_version=$ASSISTANT" >> $GITHUB_OUTPUT
 
-      - name: Remove debug logs from source code
+      - name: Build Debug APKs (WITH LOGS)
         run: |
-          # Usuwanie linii z Log.d, Log.i, Log.v, Log.w
-          find app/src -name "*.java" -exec sed -i '/Log\.[divw]/d' {} \;
-          # Zostawiamy tylko Log.e dla błędów
-          echo "Debug logs removed from source code"
-
-      - name: Build Release APKs (NO LOGS)
-        run: |
-          ./gradlew assembleMinimalRelease --stacktrace --info
-          ./gradlew assembleAssistantRelease --stacktrace --info
+          ./gradlew assembleMinimalDebug --stacktrace --info
+          ./gradlew assembleAssistantDebug --stacktrace --info
 
       - name: Generate Random Password & Signing Key for Minimal
         run: |
@@ -88,8 +81,8 @@ jobs:
 
       - name: Sign Minimal APK
         run: |
-          UNSIGNED=$(find app/build/outputs/apk/minimal/release -name "*.apk" | head -1)
-          SIGNED="GoogleTranslateOverlay-minimal-v${{ steps.version.outputs.minimal_version }}.apk"
+          UNSIGNED=$(find app/build/outputs/apk/minimal/debug -name "*.apk" | head -1)
+          SIGNED="GoogleTranslateOverlay-minimal-v${{ steps.version.outputs.minimal_version }}-debug.apk"
           $ANDROID_HOME/build-tools/34.0.0/zipalign -v -p 4 "$UNSIGNED" aligned_minimal.apk
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
             --ks translateoverlay_minimal.jks \
@@ -121,8 +114,8 @@ jobs:
 
       - name: Sign Assistant APK
         run: |
-          UNSIGNED=$(find app/build/outputs/apk/assistant/release -name "*.apk" | head -1)
-          SIGNED="GoogleTranslateOverlay-assistant-v${{ steps.version.outputs.assistant_version }}.apk"
+          UNSIGNED=$(find app/build/outputs/apk/assistant/debug -name "*.apk" | head -1)
+          SIGNED="GoogleTranslateOverlay-assistant-v${{ steps.version.outputs.assistant_version }}-debug.apk"
           $ANDROID_HOME/build-tools/34.0.0/zipalign -v -p 4 "$UNSIGNED" aligned_assistant.apk
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
             --ks translateoverlay_assistant.jks \
@@ -136,21 +129,21 @@ jobs:
             aligned_assistant.apk
           $ANDROID_HOME/build-tools/34.0.0/apksigner verify "$SIGNED"
 
-      - name: Upload Release Artifacts
+      - name: Upload Debug Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: APKs-RELEASE
+          name: APKs-DEBUG
           path: |
-            GoogleTranslateOverlay-minimal-*.apk
-            GoogleTranslateOverlay-assistant-*.apk
+            GoogleTranslateOverlay-minimal-*-debug.apk
+            GoogleTranslateOverlay-assistant-*-debug.apk
 
-      - name: Create Release
+      - name: Create Debug Release
         run: |
-          gh release delete "v${{ steps.version.outputs.assistant_version }}" --yes || true
-          gh release create "v${{ steps.version.outputs.assistant_version }}" \
-            --title "GoogleTranslateOverlay v${{ steps.version.outputs.assistant_version }}" \
-            --notes "RELEASE VERSION - NO DEBUG LOGS\nminimal + assistant (voice)" \
-            GoogleTranslateOverlay-minimal-v${{ steps.version.outputs.minimal_version }}.apk \
-            GoogleTranslateOverlay-assistant-v${{ steps.version.outputs.assistant_version }}.apk
+          gh release delete "debug-v${{ steps.version.outputs.assistant_version }}" --yes || true
+          gh release create "debug-v${{ steps.version.outputs.assistant_version }}" \
+            --title "GoogleTranslateOverlay DEBUG v${{ steps.version.outputs.assistant_version }}" \
+            --notes "DEBUG VERSION - WITH LOGS\nUse for testing only" \
+            GoogleTranslateOverlay-minimal-v${{ steps.version.outputs.minimal_version }}-debug.apk \
+            GoogleTranslateOverlay-assistant-v${{ steps.version.outputs.assistant_version }}-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
