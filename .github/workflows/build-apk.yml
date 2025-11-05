@@ -89,7 +89,7 @@ jobs:
       - name: Sign Minimal APK
         run: |
           UNSIGNED=$(find app/build/outputs/apk/minimal/release -name "*.apk" | head -1)
-          SIGNED="GoogleTranslateOverlay-minimal-v${{ steps.version.outputs.minimal_version }}-signed.apk"
+          SIGNED="GoogleTranslateOverlay-minimal-v${{ steps.version.outputs.minimal_version }}.apk"
           $ANDROID_HOME/build-tools/34.0.0/zipalign -v -p 4 "$UNSIGNED" aligned_minimal.apk
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
             --ks translateoverlay_minimal.jks \
@@ -122,7 +122,7 @@ jobs:
       - name: Sign Assistant APK
         run: |
           UNSIGNED=$(find app/build/outputs/apk/assistant/release -name "*.apk" | head -1)
-          SIGNED="GoogleTranslateOverlay-assistant-v${{ steps.version.outputs.assistant_version }}-signed.apk"
+          SIGNED="GoogleTranslateOverlay-assistant-v${{ steps.version.outputs.assistant_version }}.apk"
           $ANDROID_HOME/build-tools/34.0.0/zipalign -v -p 4 "$UNSIGNED" aligned_assistant.apk
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
             --ks translateoverlay_assistant.jks \
@@ -141,8 +141,8 @@ jobs:
         with:
           name: APKs-RELEASE
           path: |
-            GoogleTranslateOverlay-minimal-*-signed.apk
-            GoogleTranslateOverlay-assistant-*-signed.apk
+            GoogleTranslateOverlay-minimal-*.apk
+            GoogleTranslateOverlay-assistant-*.apk
 
       - name: Create Release
         run: |
@@ -150,7 +150,7 @@ jobs:
           gh release create "v${{ steps.version.outputs.assistant_version }}" \
             --title "GoogleTranslateOverlay v${{ steps.version.outputs.assistant_version }}" \
             --notes "RELEASE VERSION - NO DEBUG LOGS\nminimal + assistant (voice)" \
-            GoogleTranslateOverlay-minimal-v${{ steps.version.outputs.minimal_version }}-signed.apk \
-            GoogleTranslateOverlay-assistant-v${{ steps.version.outputs.assistant_version }}-signed.apk
+            GoogleTranslateOverlay-minimal-v${{ steps.version.outputs.minimal_version }}.apk \
+            GoogleTranslateOverlay-assistant-v${{ steps.version.outputs.assistant_version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
