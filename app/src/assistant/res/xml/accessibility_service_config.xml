@@ -7,8 +7,6 @@
     android:notificationTimeout="100"
     android:canRetrieveWindowContent="true"
     android:settingsActivity="com.google.android.apps.translate.assistant.SetupAssistantActivity"
-    
-    <!-- OGRANICZENIA DLA WYDAJNOŚCI (bez ograniczeń pakietów) -->
     android:canRequestFilterKeyEvents="false"
     android:canRequestTouchExplorationMode="false"
     android:canRequestEnhancedWebAccessibility="false"
