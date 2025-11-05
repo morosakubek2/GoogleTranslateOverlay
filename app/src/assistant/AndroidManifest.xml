@@ -5,8 +5,7 @@
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
 
     <application>
-
-        <!-- VoiceInteractionService - główny serwis asystenta -->
+        <!-- VoiceInteractionService - MUSI mieć pełną kwalifikację -->
         <service
             android:name=".assistant.VoiceAssistantService"
             android:exported="true"
@@ -17,24 +16,27 @@
                 android:resource="@xml/voice_interaction_service" />
             <intent-filter>
                 <action android:name="android.service.voice.VoiceInteractionService" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
 
-        <!-- VoiceInteractionSessionService - obsługuje sesje asystenta -->
+        <!-- VoiceInteractionSessionService - również pełna kwalifikacja -->
         <service
             android:name=".assistant.TranslateSessionService"
             android:exported="true"
             android:permission="android.permission.BIND_VOICE_INTERACTION">
             <intent-filter>
                 <action android:name="android.service.voice.VoiceInteractionSessionService" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
 
-        <!-- Accessibility Service - dla wszystkich aplikacji -->
+        <!-- Accessibility Service -->
         <service
             android:name=".assistant.TranslateAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:exported="true">
+            android:exported="true"
+            android:label="Google Translate Overlay Accessibility">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
@@ -43,7 +45,7 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- Aktywność do ustawień asystenta -->
+        <!-- Aktywność asystenta - DODAJEMY dodatkowe intent-filter -->
         <activity
             android:name=".assistant.SetupAssistantActivity"
             android:exported="true"
@@ -57,15 +59,19 @@
                 <action android:name="android.intent.action.ASSIST" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            <!-- DODANE: Ważne dla asystenta -->
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
 
-        <!-- TranslateActivity - obsługuje pop-up (współdzielone z main) -->
+        <!-- Reszta bez zmian -->
         <activity
             android:name=".TranslateActivity"
             android:exported="true"
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.NoDisplay">
-            <!-- Share tekst -->
             <intent-filter
                 android:label="!Translate"
                 android:icon="@android:drawable/ic_menu_share">
@@ -73,7 +79,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
-            <!-- Share obraz -->
             <intent-filter
                 android:label="!Translate"
                 android:icon="@android:drawable/ic_menu_share">
@@ -81,7 +86,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
             </intent-filter>
-            <!-- TRANSLATE action -->
             <intent-filter
                 android:label="!Translate"
                 android:icon="@android:drawable/ic_menu_search">
@@ -91,7 +95,6 @@
             </intent-filter>
         </activity>
 
-        <!-- TapToTranslateActivity - PROCESS_TEXT (współdzielone z main) -->
         <activity
             android:name=".copydrop.gm3.TapToTranslateActivity"
             android:exported="true"
