@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId "com.google.android.apps.translate"
-        minSdk 23
+        minSdk 21
         targetSdk 34
         versionCode 5
         versionName "2"
@@ -38,13 +38,15 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
-        // DZIAŁA BEZ WRAPPERA
-        bootClasspath "${android.sdkDirectory}/platforms/android-34/android.jar"
+        // ZMIENIONO: Użyj bootstrapClasspath zamiast bootClasspath
+        bootstrapClasspath project.files("${android.sdkDirectory}/platforms/android-34/android.jar")
     }
-}
 
-dependencies {
-    // NIC
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(11)
+        }
+    }
 }
 
 tasks.register('minimalProperties') {
