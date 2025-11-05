@@ -12,51 +12,60 @@ import android.util.Log;
 
 public class TranslateSession extends VoiceInteractionSession {
 
-    private static final String TAG = "TranslateSession";
-
     public TranslateSession(Context context) {
         super(context);
-        Log.d(TAG, "TranslateSession created");
+        Log.d("GOTranslate", "TranslateSession created");
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG, "onCreate called");
+        Log.d("GOTranslate", "onCreate called");
     }
 
     @Override
     public void onShow(Bundle args, int showFlags) {
         super.onShow(args, showFlags);
-        Log.d(TAG, "onShow called with flags: " + showFlags);
+        Log.d("GOTranslate", "onShow called with flags: " + showFlags);
     }
 
     @Override
     public void onHandleAssist(Bundle data, AssistStructure structure, android.app.assist.AssistContent content) {
-        Log.d(TAG, "onHandleAssist called");
+        Log.d("GOTranslate", "=== ASSIST START ===");
         
-        if (structure != null) {
-            Log.d(TAG, "AssistStructure windows: " + structure.getWindowNodeCount());
-        } else {
-            Log.w(TAG, "AssistStructure is null!");
+        try {
+            Log.d("GOTranslate", "Assist data: " + (data != null ? data.keySet() : "null"));
+            
+            if (structure == null) {
+                Log.w("GOTranslate", "AssistStructure is null!");
+            } else {
+                Log.d("GOTranslate", "Windows count: " + structure.getWindowNodeCount());
+                for (int i = 0; i < structure.getWindowNodeCount(); i++) {
+                    AssistStructure.WindowNode window = structure.getWindowNodeAt(i);
+                    Log.d("GOTranslate", "Window " + i + ": " + window.getTitle());
+                }
+            }
+            
+            String selectedText = extractSelectedText(structure);
+            
+            if (!TextUtils.isEmpty(selectedText)) {
+                Log.d("GOTranslate", "SELECTED TEXT: " + selectedText);
+                redirectToTranslateActivity(selectedText);
+            } else {
+                Log.d("GOTranslate", "No text selected");
+            }
+            
+        } catch (Exception e) {
+            Log.e("GOTranslate", "Error in onHandleAssist", e);
+        } finally {
+            Log.d("GOTranslate", "=== ASSIST END ===");
+            finish();
         }
-        
-        String selectedText = extractSelectedText(structure);
-        
-        if (!TextUtils.isEmpty(selectedText)) {
-            Log.d(TAG, "Selected text found: " + selectedText);
-            redirectToTranslateActivity(selectedText);
-        } else {
-            Log.d(TAG, "No text selected - finishing session");
-        }
-        
-        // Zamykamy sesję asystenta
-        finish();
     }
 
     private String extractSelectedText(AssistStructure structure) {
         if (structure == null) {
-            Log.w(TAG, "extractSelectedText: structure is null");
+            Log.w("GOTranslate", "extractSelectedText: structure is null");
             return null;
         }
 
@@ -65,11 +74,11 @@ public class TranslateSession extends VoiceInteractionSession {
             ViewNode root = window.getRootViewNode();
             String text = traverseNode(root);
             if (text != null) {
-                Log.d(TAG, "Found text in window " + i);
+                Log.d("GOTranslate", "Found text in window " + i);
                 return text;
             }
         }
-        Log.d(TAG, "No selected text found in any window");
+        Log.d("GOTranslate", "No selected text found in any window");
         return null;
     }
 
@@ -83,7 +92,7 @@ public class TranslateSession extends VoiceInteractionSession {
             
             if (start >= 0 && end > start && end <= nodeText.length()) {
                 String selected = nodeText.subSequence(start, end).toString();
-                Log.d(TAG, "Found selection: " + selected);
+                Log.d("GOTranslate", "Found selection: " + selected);
                 return selected;
             }
         }
@@ -107,9 +116,9 @@ public class TranslateSession extends VoiceInteractionSession {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             
             getContext().startActivity(intent);
-            Log.d(TAG, "Successfully redirected to TranslateActivity with text: " + text);
+            Log.d("GOTranslate", "Successfully redirected to TranslateActivity with text: " + text);
         } catch (Exception e) {
-            Log.e(TAG, "Failed to start TranslateActivity", e);
+            Log.e("GOTranslate", "Failed to start TranslateActivity", e);
         }
     }
 }
