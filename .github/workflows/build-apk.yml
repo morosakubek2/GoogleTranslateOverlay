@@ -60,9 +60,7 @@ jobs:
 
       - name: Remove debug logs from source code
         run: |
-          # Usuwanie linii z Log.d, Log.i, Log.v, Log.w
           find app/src -name "*.java" -exec sed -i '/Log\.[divw]/d' {} \;
-          # Zostawiamy tylko Log.e dla błędów
           echo "Debug logs removed from source code"
 
       - name: Build Release APKs (NO LOGS)
@@ -89,7 +87,7 @@ jobs:
       - name: Sign Minimal APK
         run: |
           UNSIGNED=$(find app/build/outputs/apk/minimal/release -name "*.apk" | head -1)
-          SIGNED="GoogleTranslateOverlay-minimal-v${{ steps.version.outputs.minimal_version }}.apk"
+          SIGNED="GoogleTranslateOverlay-v${{ steps.version.outputs.minimal_version }}.apk"
           $ANDROID_HOME/build-tools/34.0.0/zipalign -v -p 4 "$UNSIGNED" aligned_minimal.apk
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
             --ks translateoverlay_minimal.jks \
@@ -122,7 +120,7 @@ jobs:
       - name: Sign Assistant APK
         run: |
           UNSIGNED=$(find app/build/outputs/apk/assistant/release -name "*.apk" | head -1)
-          SIGNED="GoogleTranslateOverlay-assistant-v${{ steps.version.outputs.assistant_version }}.apk"
+          SIGNED="GoogleTranslateOverlay-v${{ steps.version.outputs.assistant_version }}.apk"
           $ANDROID_HOME/build-tools/34.0.0/zipalign -v -p 4 "$UNSIGNED" aligned_assistant.apk
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
             --ks translateoverlay_assistant.jks \
@@ -141,8 +139,7 @@ jobs:
         with:
           name: APKs-RELEASE
           path: |
-            GoogleTranslateOverlay-minimal-*.apk
-            GoogleTranslateOverlay-assistant-*.apk
+            GoogleTranslateOverlay-v*.apk
 
       - name: Create Release
         run: |
@@ -150,7 +147,7 @@ jobs:
           gh release create "v${{ steps.version.outputs.assistant_version }}" \
             --title "GoogleTranslateOverlay v${{ steps.version.outputs.assistant_version }}" \
             --notes "RELEASE VERSION - NO DEBUG LOGS\nminimal + assistant (voice)" \
-            GoogleTranslateOverlay-minimal-v${{ steps.version.outputs.minimal_version }}.apk \
-            GoogleTranslateOverlay-assistant-v${{ steps.version.outputs.assistant_version }}.apk
+            GoogleTranslateOverlay-v${{ steps.version.outputs.minimal_version }}.apk \
+            GoogleTranslateOverlay-v${{ steps.version.outputs.assistant_version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
