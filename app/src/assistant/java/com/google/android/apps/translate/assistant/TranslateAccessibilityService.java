@@ -10,16 +10,21 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
+
+import java.util.List;
 
 public class TranslateAccessibilityService extends AccessibilityService {
 
     private static final long SESSION_TIMEOUT_MS = 5000; // 5 sekund timeout
     private static final long DEBOUNCE_DELAY_MS = 300; // Zapobiegaj wielokrotnemu uruchomieniu
+    private static final long RESUME_DELAY_MS = 500; // Delay na resume app po launchu asystenta
 
     private Handler handler = new Handler(Looper.getMainLooper());
     private boolean isAssistantSession = false;
     private long lastEventTime = 0;
     private Runnable timeoutRunnable = this::endSession;
+    private Runnable checkSelectionRunnable = this::checkCurrentSelection; // Wyodrębnij do runnable dla delay
 
     @Override
     public void onCreate() {
@@ -28,11 +33,14 @@ public class TranslateAccessibilityService extends AccessibilityService {
         
         // Maksymalna optymalizacja - minimalne eventy
         AccessibilityServiceInfo config = new AccessibilityServiceInfo();
-        config.eventTypes = AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED; // TYLKO zmiana zaznaczenia
+        config.eventTypes = AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED
+                | AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                | AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED; // Dodaj eventy dla zmian okna/content, by wykryć resume app
         config.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC;
-        config.flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS;
+        config.flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
+                | AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+                | AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS; // Dodaj flagę dla nieistotnych widoków (pełne tree)
         config.notificationTimeout = 100; // Krótki timeout
-        // BRAK OGRANICZEŃ DO PAKIETÓW - działamy dla wszystkich aplikacji
         
         setServiceInfo(config);
     }
@@ -66,6 +74,11 @@ public class TranslateAccessibilityService extends AccessibilityService {
 
         if (event.getEventType() == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED) {
             processTextSelection(event);
+        } else if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED 
+                || event.getEventType() == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            // Gdy okno się zmienia (np. app resume po asystencie), sprawdź selection
+            Log.d("GOTr", "Window changed – checking selection");
+            checkCurrentSelection();
         }
     }
 
@@ -83,8 +96,8 @@ public class TranslateAccessibilityService extends AccessibilityService {
         isAssistantSession = true;
         lastEventTime = System.currentTimeMillis();
         
-        // ZMIANA: Aktywnie sprawdź bieżące zaznaczenie w aktywnym oknie
-        checkCurrentSelection();
+        // Dodaj delay na resume foreground app po launchu asystenta
+        handler.postDelayed(checkSelectionRunnable, RESUME_DELAY_MS);
         
         // Timeout na wypadek, gdyby tekst nie został znaleziony
         handler.removeCallbacks(timeoutRunnable);
@@ -98,30 +111,41 @@ public class TranslateAccessibilityService extends AccessibilityService {
         Log.d("GOTr", "Ending assistant session");
         isAssistantSession = false;
         handler.removeCallbacks(timeoutRunnable);
+        handler.removeCallbacks(checkSelectionRunnable); // Usuń pending check
     }
 
-    // ZMIANA: Nowa metoda do sprawdzenia bieżącego stanu okna
     private void checkCurrentSelection() {
-        AccessibilityNodeInfo root = getRootInActiveWindow();
-        if (root == null) {
-            Log.d("GOTr", "No active window root found");
+        List<AccessibilityWindowInfo> windows = getWindows();
+        if (windows == null || windows.isEmpty()) {
+            Log.d("GOTr", "No windows found");
             return;
         }
 
-        try {
-            String selectedText = findSelectedTextInNode(root);
-            if (!TextUtils.isEmpty(selectedText)) {
-                Log.d("GOTr", "Found current selected text: " + selectedText);
-                redirectToTranslateActivity(selectedText);
-                endSession(); // Zakończ sesję po znalezieniu tekstu
-            } else {
-                Log.d("GOTr", "No current selection found in active window");
+        Log.d("GOTr", "Found " + windows.size() + " windows");
+
+        for (AccessibilityWindowInfo window : windows) {
+            AccessibilityNodeInfo root = window.getRoot();
+            if (root == null) {
+                continue;
             }
-        } catch (Exception e) {
-            Log.e("GOTr", "Error checking current selection", e);
-        } finally {
-            root.recycle();
+
+            try {
+                Log.d("GOTr", "Checking window: " + root.getPackageName());
+                String selectedText = findSelectedTextInNode(root);
+                if (!TextUtils.isEmpty(selectedText)) {
+                    Log.d("GOTr", "Found current selected text in window: " + selectedText);
+                    redirectToTranslateActivity(selectedText);
+                    endSession(); // Zakończ sesję po znalezieniu tekstu
+                    return; // Wyjdź po znalezieniu, by uniknąć przetwarzania reszty
+                }
+            } catch (Exception e) {
+                Log.e("GOTr", "Error checking window", e);
+            } finally {
+                root.recycle();
+            }
         }
+
+        Log.d("GOTr", "No current selection found in any window");
     }
 
     private void processTextSelection(AccessibilityEvent event) {
@@ -166,18 +190,23 @@ public class TranslateAccessibilityService extends AccessibilityService {
                 if (start >= 0 && end > start && end <= text.length()) {
                     String selected = text.subSequence(start, end).toString().trim();
                     if (!TextUtils.isEmpty(selected) && selected.length() > 1) { // Minimum 2 znaki
-                        Log.d("GOTr", "Text selection found: " + selected);
+                        Log.d("GOTr", "Text selection found: " + selected + " (full text: " + text + ")"); 
                         return selected;
                     }
+                } else if (node.isSelected()) { // Dodaj fallback na isSelected() jeśli no start/end
+                    Log.d("GOTr", "Node is selected but no start/end – using full text: " + text);
+                    return text.toString().trim();
+                } else {
+                    Log.d("GOTr", "Node has text but no valid selection: " + text); 
                 }
             }
 
-            // Rekurencyjnie przeszukaj dzieci (zwiększono limit dla lepszego pokrycia, ale nadal ograniczony dla wydajności)
-            for (int i = 0; i < node.getChildCount() && i < 20; i++) { // ZMIANA: Zwiększono z 10 na 20
+            // Rekurencyjnie przeszukaj dzieci (zwiększono limit dla lepszego pokrycia)
+            for (int i = 0; i < node.getChildCount() && i < 50; i++) { // Zwiększono do 50
                 AccessibilityNodeInfo child = node.getChild(i);
                 if (child != null) {
                     String result = findSelectedTextInNode(child);
-                    child.recycle(); // ZMIANA: Dodaj recycle dla dzieci, by uniknąć memory leak
+                    child.recycle();
                     if (result != null) {
                         return result;
                     }
@@ -213,5 +242,6 @@ public class TranslateAccessibilityService extends AccessibilityService {
         super.onDestroy();
         Log.d("GOTr", "TranslateAccessibilityService destroyed");
         handler.removeCallbacks(timeoutRunnable);
+        handler.removeCallbacks(checkSelectionRunnable);
     }
 }
