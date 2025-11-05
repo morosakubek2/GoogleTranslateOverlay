@@ -18,13 +18,11 @@ android {
     productFlavors {
         minimal {
             dimension "mode"
-            applicationIdSuffix ".minimal"
             versionNameSuffix "-minimal"
             minSdk 21
         }
         assistant {
             dimension "mode"
-            applicationIdSuffix ".assistant"
             versionNameSuffix "-assistant"
             minSdk 26  // Android 8.0+ dla VoiceInteractionService
         }
