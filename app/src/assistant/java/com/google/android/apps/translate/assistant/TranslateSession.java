@@ -2,6 +2,8 @@ package com.google.android.apps.translate.assistant;
 
 import android.app.assist.AssistStructure;
 import android.app.assist.AssistStructure.ViewNode;
+import android.content.ClipboardManager;
+import android.content.ClipData;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -24,10 +26,17 @@ public class TranslateSession extends VoiceInteractionSession {
         String selectedText = extractSelectedText(structure);
         
         if (!TextUtils.isEmpty(selectedText)) {
-            Log.d("GOTranslate", "SELECTED TEXT: " + selectedText);
+            Log.d("GOTranslate", "SELECTED TEXT from structure: " + selectedText);
             redirectToTranslateActivity(selectedText);
         } else {
-            Log.d("GOTranslate", "No text selected");
+            Log.d("GOTranslate", "No text selected in structure - checking clipboard");
+            String clipboardText = getTextFromClipboard();
+            if (!TextUtils.isEmpty(clipboardText)) {
+                Log.d("GOTranslate", "SELECTED TEXT from clipboard: " + clipboardText);
+                redirectToTranslateActivity(clipboardText);
+            } else {
+                Log.d("GOTranslate", "No text in clipboard either");
+            }
         }
         
         Log.d("GOTranslate", "=== ASSIST END ===");
@@ -40,37 +49,83 @@ public class TranslateSession extends VoiceInteractionSession {
             return null;
         }
 
+        Log.d("GOTranslate", "=== ASSIST STRUCTURE DEBUG ===");
+        Log.d("GOTranslate", "Window nodes: " + structure.getWindowNodeCount());
+        
+        StringBuilder debugInfo = new StringBuilder();
+        
         for (int i = 0; i < structure.getWindowNodeCount(); i++) {
             AssistStructure.WindowNode window = structure.getWindowNodeAt(i);
+            debugInfo.append("Window ").append(i).append(": '").append(window.getTitle()).append("'\n");
+            
             ViewNode root = window.getRootViewNode();
-            String text = traverseNode(root);
-            if (text != null) {
-                Log.d("GOTranslate", "Found text in window " + i);
-                return text;
+            if (root != null) {
+                String text = traverseNodeWithDebug(root, debugInfo, 0);
+                if (text != null) {
+                    Log.d("GOTranslate", "FOUND TEXT: " + text);
+                    Log.d("GOTranslate", "DEBUG INFO:\n" + debugInfo.toString());
+                    return text;
+                }
             }
         }
+        
+        Log.d("GOTranslate", "DEBUG INFO:\n" + debugInfo.toString());
         Log.d("GOTranslate", "No selected text found in any window");
         return null;
     }
 
-    private String traverseNode(ViewNode node) {
+    private String traverseNodeWithDebug(ViewNode node, StringBuilder debug, int depth) {
         if (node == null) return null;
 
-        CharSequence nodeText = node.getText();
-        if (nodeText != null) {
+        String indent = "  ".repeat(depth);
+        CharSequence text = node.getText();
+        
+        if (text != null) {
+            debug.append(indent).append("Node: '").append(text).append("'");
+            debug.append(" [selection: ").append(node.getTextSelectionStart()).append("-").append(node.getTextSelectionEnd()).append("]");
+            debug.append(" class: ").append(node.getClassName()).append("\n");
+            
             int start = node.getTextSelectionStart();
             int end = node.getTextSelectionEnd();
             
-            if (start >= 0 && end > start && end <= nodeText.length()) {
-                String selected = nodeText.subSequence(start, end).toString();
-                Log.d("GOTranslate", "Found selection: " + selected);
+            if (start >= 0 && end > start && end <= text.length()) {
+                String selected = text.subSequence(start, end).toString();
+                debug.append(indent).append(">>> SELECTED: '").append(selected).append("'\n");
                 return selected;
             }
+        } else {
+            debug.append(indent).append("Node: no text, class: ").append(node.getClassName()).append("\n");
+        }
+
+        if (node.getHint() != null) {
+            debug.append(indent).append("Hint: '").append(node.getHint()).append("'\n");
+        }
+        if (node.getContentDescription() != null) {
+            debug.append(indent).append("ContentDesc: '").append(node.getContentDescription()).append("'\n");
         }
 
         for (int i = 0; i < node.getChildCount(); i++) {
-            String text = traverseNode(node.getChildAt(i));
-            if (text != null) return text;
+            String result = traverseNodeWithDebug(node.getChildAt(i), debug, depth + 1);
+            if (result != null) return result;
+        }
+        
+        return null;
+    }
+
+    private String getTextFromClipboard() {
+        try {
+            ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+            if (clipboard != null && clipboard.hasPrimaryClip()) {
+                ClipData clipData = clipboard.getPrimaryClip();
+                if (clipData != null && clipData.getItemCount() > 0) {
+                    CharSequence text = clipData.getItemAt(0).getText();
+                    if (!TextUtils.isEmpty(text)) {
+                        return text.toString();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e("GOTranslate", "Error getting text from clipboard", e);
         }
         return null;
     }
