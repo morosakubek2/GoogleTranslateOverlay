@@ -41,7 +41,7 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- Aktywność do ustawień asystenta -->
+        <!-- Aktywność do ustawień asystenta - TYLKO TA MA INTENT-FILTER DLA LAUNCHERA I ASSIST -->
         <activity
             android:name=".assistant.SetupAssistantActivity"
             android:exported="true"
@@ -57,7 +57,7 @@
             </intent-filter>
         </activity>
 
-        <!-- TranslateActivity - obsługuje pop-up (współdzielone z main) -->
+        <!-- TranslateActivity - NIE MA intent-filter dla launchera ani asystenta -->
         <activity
             android:name=".TranslateActivity"
             android:exported="true"
@@ -89,7 +89,7 @@
             </intent-filter>
         </activity>
 
-        <!-- TapToTranslateActivity - PROCESS_TEXT (współdzielone z main) -->
+        <!-- TapToTranslateActivity - PROCESS_TEXT -->
         <activity
             android:name=".copydrop.gm3.TapToTranslateActivity"
             android:exported="true"
