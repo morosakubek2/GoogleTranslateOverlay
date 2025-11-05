@@ -5,24 +5,22 @@ import android.util.Log;
 
 public class VoiceAssistantService extends VoiceInteractionService {
 
-    private static final String TAG = "GOTranslate";
-
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG, "VoiceAssistantService created");
+        Log.d("GOTranslate", "VoiceAssistantService created");
     }
 
     @Override
     public void onReady() {
         super.onReady();
-        Log.d(TAG, "VoiceAssistantService ready");
-        setDisabledShowContext(0); // Ważne: pozwala na wyświetlanie kontekstu
+        Log.d("GOTranslate", "VoiceAssistantService ready");
+        setDisabledShowContext(0);
     }
 
     @Override
     public void onShutdown() {
         super.onShutdown();
-        Log.d(TAG, "VoiceAssistantService shutdown");
+        Log.d("GOTranslate", "VoiceAssistantService shutdown");
     }
 }
