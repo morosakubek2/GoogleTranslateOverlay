@@ -13,10 +13,8 @@ import android.view.accessibility.AccessibilityNodeInfo;
 
 public class TranslateAccessibilityService extends AccessibilityService {
 
-    private static final long SESSION_TIMEOUT_MS = 5000;
-    private static final long DEBOUNCE_DELAY_MS = 300;
-    
-    private static TranslateAccessibilityService instance;
+    private static final long SESSION_TIMEOUT_MS = 5000; // 5 sekund timeout
+    private static final long DEBOUNCE_DELAY_MS = 300; // Zapobiegaj wielokrotnemu uruchomieniu
 
     private Handler handler = new Handler(Looper.getMainLooper());
     private boolean isAssistantSession = false;
@@ -26,49 +24,43 @@ public class TranslateAccessibilityService extends AccessibilityService {
     @Override
     public void onCreate() {
         super.onCreate();
-        instance = this;
         Log.d("GOTr", "TranslateAccessibilityService created");
-    }
-
-    @Override
-    protected void onServiceConnected() {
-        super.onServiceConnected();
-        Log.d("GOTr", "TranslateAccessibilityService connected");
         
+        // Maksymalna optymalizacja - minimalne eventy
         AccessibilityServiceInfo config = new AccessibilityServiceInfo();
-        config.eventTypes = AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED;
+        config.eventTypes = AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED; // TYLKO zmiana zaznaczenia
         config.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC;
         config.flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS;
-        config.notificationTimeout = 100;
+        config.notificationTimeout = 100; // Krótki timeout
+        // BRAK OGRANICZEŃ DO PAKIETÓW - działamy dla wszystkich aplikacji
         
         setServiceInfo(config);
     }
 
-    /**
-     * Statyczna metoda do uruchomienia sesji z VoiceInteractionService
-     */
-    public static void startSession() {
-        if (instance != null) {
-            instance.startAssistantSession();
-        } else {
-            Log.w("GOTr", "AccessibilityService not running - cannot start session");
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && "START_SESSION".equals(intent.getAction())) {
+            Log.d("GOTr", "Received start session command");
+            startAssistantSession();
         }
+        return START_NOT_STICKY;
     }
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (!isAssistantSession) {
-            return;
+            return; // Działamy tylko podczas sesji asystenta
         }
 
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastEventTime < DEBOUNCE_DELAY_MS) {
-            return;
+            return; // Zapobiegaj spamowaniu eventami
         }
         lastEventTime = currentTime;
 
-        Log.d("GOTr", "Accessibility event during session: " + event.getEventType());
+        Log.d("GOTr", "Accessibility event: " + event.getEventType() + ", package: " + event.getPackageName());
 
+        // Restart timeout
         handler.removeCallbacks(timeoutRunnable);
         handler.postDelayed(timeoutRunnable, SESSION_TIMEOUT_MS);
 
@@ -83,15 +75,22 @@ public class TranslateAccessibilityService extends AccessibilityService {
         endSession();
     }
 
-    private void startAssistantSession() {
+    /**
+     * Uruchamia sesję asystenta - wywoływane z VoiceInteractionService
+     */
+    public void startAssistantSession() {
         Log.d("GOTr", "Starting assistant session");
         isAssistantSession = true;
         lastEventTime = System.currentTimeMillis();
         
+        // Timeout na wypadek, gdyby tekst nie został znaleziony
         handler.removeCallbacks(timeoutRunnable);
         handler.postDelayed(timeoutRunnable, SESSION_TIMEOUT_MS);
     }
 
+    /**
+     * Kończy sesję asystenta
+     */
     private void endSession() {
         Log.d("GOTr", "Ending assistant session");
         isAssistantSession = false;
@@ -104,7 +103,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
             if (!TextUtils.isEmpty(selectedText)) {
                 Log.d("GOTr", "Found selected text: " + selectedText);
                 redirectToTranslateActivity(selectedText);
-                endSession();
+                endSession(); // Zakończ sesję po znalezieniu tekstu
             }
         } catch (Exception e) {
             Log.e("GOTr", "Error processing text selection", e);
@@ -118,6 +117,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
         }
 
         try {
+            // Szukaj zaznaczonego tekstu w drzewie dostępności
             return findSelectedTextInNode(source);
         } finally {
             source.recycle();
@@ -130,6 +130,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
         }
 
         try {
+            // Sprawdź czy node ma zaznaczony tekst
             CharSequence text = node.getText();
             if (text != null) {
                 int start = node.getTextSelectionStart();
@@ -137,18 +138,18 @@ public class TranslateAccessibilityService extends AccessibilityService {
                 
                 if (start >= 0 && end > start && end <= text.length()) {
                     String selected = text.subSequence(start, end).toString().trim();
-                    if (!TextUtils.isEmpty(selected) && selected.length() > 1) {
+                    if (!TextUtils.isEmpty(selected) && selected.length() > 1) { // Minimum 2 znaki
                         Log.d("GOTr", "Text selection found: " + selected);
                         return selected;
                     }
                 }
             }
 
-            for (int i = 0; i < Math.min(node.getChildCount(), 10); i++) {
+            // Rekurencyjnie przeszukaj dzieci (ogranicz głębokość dla wydajności)
+            for (int i = 0; i < node.getChildCount() && i < 10; i++) { // Max 10 dzieci
                 AccessibilityNodeInfo child = node.getChild(i);
                 if (child != null) {
                     String result = findSelectedTextInNode(child);
-                    child.recycle();
                     if (result != null) {
                         return result;
                     }
@@ -182,7 +183,6 @@ public class TranslateAccessibilityService extends AccessibilityService {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        instance = null;
         Log.d("GOTr", "TranslateAccessibilityService destroyed");
         handler.removeCallbacks(timeoutRunnable);
     }
