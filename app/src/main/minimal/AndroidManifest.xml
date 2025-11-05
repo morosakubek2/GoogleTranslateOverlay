@@ -17,6 +17,14 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
             </intent-filter>
+            <!-- TRANSLATE action - dla niektórych aplikacji -->
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_search">
+                <action android:name="android.intent.action.TRANSLATE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
 
         <!-- PROCESS_TEXT -->
@@ -29,8 +37,14 @@
                 android:label="!Translate"
                 android:icon="@android:drawable/ic_menu_search">
                 <action android:name="android.intent.action.PROCESS_TEXT" />
-                <action android:name="android.intent.action.PROCESS_TEXT_READONLY" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_search">
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.ALTERNATIVE" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
