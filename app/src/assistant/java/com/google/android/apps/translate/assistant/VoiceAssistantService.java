@@ -1,12 +1,11 @@
 package com.google.android.apps.translate.assistant;
 
-import android.content.Intent;
 import android.service.voice.VoiceInteractionService;
 import android.util.Log;
 
 public class VoiceAssistantService extends VoiceInteractionService {
 
-    private static final String TAG = "VoiceAssistantService";
+    private static final String TAG = "GOTranslate";
 
     @Override
     public void onCreate() {
@@ -17,7 +16,8 @@ public class VoiceAssistantService extends VoiceInteractionService {
     @Override
     public void onReady() {
         super.onReady();
-        Log.d(TAG, "VoiceAssistantService ready - system will use TranslateSessionService");
+        Log.d(TAG, "VoiceAssistantService ready");
+        setDisabledShowContext(0); // Ważne: pozwala na wyświetlanie kontekstu
     }
 
     @Override
