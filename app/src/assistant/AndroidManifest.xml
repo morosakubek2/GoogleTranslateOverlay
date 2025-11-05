@@ -10,7 +10,8 @@
         <service
             android:name=".assistant.VoiceAssistantService"
             android:exported="true"
-            android:permission="android.permission.BIND_VOICE_INTERACTION">
+            android:permission="android.permission.BIND_VOICE_INTERACTION"
+            android:label="Google Translate Overlay">
             <meta-data
                 android:name="android.voice_interaction"
                 android:resource="@xml/voice_interaction_service" />
