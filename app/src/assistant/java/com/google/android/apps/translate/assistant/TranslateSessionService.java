@@ -9,7 +9,7 @@ public class TranslateSessionService extends VoiceInteractionSessionService {
 
     @Override
     public VoiceInteractionSession onNewSession(Bundle args) {
-        Log.d("GOTranslate", "Creating new TranslateSession");
+        Log.d("GOTr", "Creating new TranslateSession");
         return new TranslateSession(this);
     }
 }
