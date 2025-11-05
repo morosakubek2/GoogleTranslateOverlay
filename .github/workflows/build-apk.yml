@@ -1,4 +1,4 @@
-name: Build & Release APK
+name: Build & Release APK - RELEASE
 
 on:
   workflow_dispatch:
@@ -58,7 +58,14 @@ jobs:
           echo "minimal_version=$MINIMAL" >> $GITHUB_OUTPUT
           echo "assistant_version=$ASSISTANT" >> $GITHUB_OUTPUT
 
-      - name: Build Release APKs
+      - name: Remove debug logs from source code
+        run: |
+          # Usuwanie linii z Log.d, Log.i, Log.v, Log.w
+          find app/src -name "*.java" -exec sed -i '/Log\.[divw]/d' {} \;
+          # Zostawiamy tylko Log.e dla błędów
+          echo "Debug logs removed from source code"
+
+      - name: Build Release APKs (NO LOGS)
         run: |
           ./gradlew assembleMinimalRelease --stacktrace --info
           ./gradlew assembleAssistantRelease --stacktrace --info
@@ -129,20 +136,20 @@ jobs:
             aligned_assistant.apk
           $ANDROID_HOME/build-tools/34.0.0/apksigner verify "$SIGNED"
 
-      - name: Upload Artifacts
+      - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: APKs
+          name: APKs-RELEASE
           path: |
-            GoogleTranslateOverlay-minimal-*.apk
-            GoogleTranslateOverlay-assistant-*.apk
+            GoogleTranslateOverlay-minimal-*-signed.apk
+            GoogleTranslateOverlay-assistant-*-signed.apk
 
       - name: Create Release
         run: |
           gh release delete "v${{ steps.version.outputs.assistant_version }}" --yes || true
           gh release create "v${{ steps.version.outputs.assistant_version }}" \
             --title "GoogleTranslateOverlay v${{ steps.version.outputs.assistant_version }}" \
-            --notes "minimal + assistant (voice)" \
+            --notes "RELEASE VERSION - NO DEBUG LOGS\nminimal + assistant (voice)" \
             GoogleTranslateOverlay-minimal-v${{ steps.version.outputs.minimal_version }}-signed.apk \
             GoogleTranslateOverlay-assistant-v${{ steps.version.outputs.assistant_version }}-signed.apk
         env:
