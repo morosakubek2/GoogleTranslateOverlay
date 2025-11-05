@@ -4,15 +4,30 @@
 
     <application>
 
+        <!-- VoiceInteractionService -->
         <service
             android:name=".assistant.VoiceAssistantService"
             android:exported="true"
             android:permission="android.permission.BIND_VOICE_INTERACTION">
+            <meta-data
+                android:name="android.voice_interaction"
+                android:resource="@xml/voice_interaction_service" />
             <intent-filter>
                 <action android:name="android.service.voice.VoiceInteractionService" />
             </intent-filter>
         </service>
 
+        <!-- VoiceInteractionSessionService -->
+        <service
+            android:name=".assistant.VoiceInteractionSessionService"
+            android:exported="true"
+            android:permission="android.permission.BIND_VOICE_INTERACTION">
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionSessionService" />
+            </intent-filter>
+        </service>
+
+        <!-- Setup Activity -->
         <activity
             android:name=".assistant.SetupAssistantActivity"
             android:exported="true"
