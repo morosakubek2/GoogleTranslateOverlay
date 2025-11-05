@@ -6,7 +6,9 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.accessibility.AccessibilityManager;
-import android.view.accessibility.AccessibilityServiceInfo;
+import android.accessibilityservice.AccessibilityServiceInfo;
+
+import java.util.List;
 
 public class SetupAssistantActivity extends Activity {
     
