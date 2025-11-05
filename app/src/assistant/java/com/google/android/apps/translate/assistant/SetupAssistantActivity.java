@@ -12,18 +12,16 @@ public class SetupAssistantActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        Log.d("GOTranslate", "SetupAssistantActivity started - action: " + getIntent().getAction());
-        Log.d("GOTranslate", "SetupAssistantActivity - flags: " + getIntent().getFlags());
-        Log.d("GOTranslate", "SetupAssistantActivity - categories: " + getIntent().getCategories());
+        Log.d("GOTr", "SetupAssistantActivity started - action: " + getIntent().getAction());
         
         String action = getIntent().getAction();
         
         if (Intent.ACTION_MAIN.equals(action)) {
-            Log.d("GOTranslate", "Launched from launcher - opening assistant settings");
+            Log.d("GOTr", "Launched from launcher - opening assistant settings");
             try {
                 startActivity(new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS));
             } catch (Exception e) {
-                Log.e("GOTranslate", "Failed to open voice settings", e);
+                Log.e("GOTr", "Failed to open voice settings", e);
                 startActivity(new Intent(Settings.ACTION_SETTINGS));
             }
             finish();
@@ -31,12 +29,12 @@ public class SetupAssistantActivity extends Activity {
         }
         
         if (Intent.ACTION_ASSIST.equals(action)) {
-            Log.d("GOTranslate", "Called with ACTION_ASSIST - system will handle via VoiceInteractionService");
+            Log.d("GOTr", "Called with ACTION_ASSIST - system will handle via VoiceInteractionService");
             finish();
             return;
         }
         
-        Log.d("GOTranslate", "Unknown action, finishing");
+        Log.d("GOTr", "Unknown action, finishing");
         finish();
     }
 }
