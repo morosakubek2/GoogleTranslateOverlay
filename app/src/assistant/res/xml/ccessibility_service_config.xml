@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/accessibility_service_description"
+    android:accessibilityEventTypes="typeViewTextSelectionChanged"
+    android:accessibilityFlags="flagReportViewIds"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:notificationTimeout="100"
+    android:canRetrieveWindowContent="true"
+    android:settingsActivity="com.google.android.apps.translate.assistant.SetupAssistantActivity"
+    
+    <!-- OGRANICZENIA DLA WYDAJNOŚCI -->
+    android:packageNames="@array/accessibility_target_packages"
+    android:canRequestFilterKeyEvents="false"
+    android:canRequestTouchExplorationMode="false"
+    android:canRequestEnhancedWebAccessibility="false"
+    android:canPerformGestures="false"
+    android:canTakeScreenshot="false" />
