@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.BIND_VOICE_INTERACTION" />
-    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <application>
 
@@ -28,7 +28,7 @@
             </intent-filter>
         </service>
 
-        <!-- Accessibility Service - dla wszystkich aplikacji -->
+        <!-- Accessibility Service - wykrywa zaznaczony tekst -->
         <service
             android:name=".assistant.TranslateAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
@@ -41,7 +41,7 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- Aktywność do ustawień asystenta - TYLKO TA MA INTENT-FILTER DLA LAUNCHERA I ASSIST -->
+        <!-- Aktywność do ustawień asystenta -->
         <activity
             android:name=".assistant.SetupAssistantActivity"
             android:exported="true"
@@ -57,7 +57,7 @@
             </intent-filter>
         </activity>
 
-        <!-- TranslateActivity - NIE MA intent-filter dla launchera ani asystenta -->
+        <!-- TranslateActivity - pop-up -->
         <activity
             android:name=".TranslateActivity"
             android:exported="true"
