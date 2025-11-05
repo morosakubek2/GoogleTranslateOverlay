@@ -13,7 +13,6 @@ import android.view.accessibility.AccessibilityNodeInfo;
 
 public class TranslateAccessibilityService extends AccessibilityService {
 
-    private static final String TAG = "GOTranslate";
     private static final long SESSION_TIMEOUT_MS = 5000; // 5 sekund timeout
     private static final long DEBOUNCE_DELAY_MS = 300; // Zapobiegaj wielokrotnemu uruchomieniu
 
@@ -25,7 +24,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG, "TranslateAccessibilityService created");
+        Log.d("GOTr", "TranslateAccessibilityService created");
         
         // Maksymalna optymalizacja - minimalne eventy
         AccessibilityServiceInfo config = new AccessibilityServiceInfo();
@@ -33,14 +32,18 @@ public class TranslateAccessibilityService extends AccessibilityService {
         config.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC;
         config.flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS;
         config.notificationTimeout = 100; // Krótki timeout
-        config.packageNames = new String[]{
-            "com.onyx.neverland.alreaderpro", // AlReader
-            "org.mozilla.firefox", // Firefox
-            "com.android.chrome", // Chrome
-            "com.google.android.apps.docs" // Docs
-        }; // TYLKO wybrane aplikacje
+        // BRAK OGRANICZEŃ DO PAKIETÓW - działamy dla wszystkich aplikacji
         
         setServiceInfo(config);
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && "START_SESSION".equals(intent.getAction())) {
+            Log.d("GOTr", "Received start session command");
+            startAssistantSession();
+        }
+        return START_NOT_STICKY;
     }
 
     @Override
@@ -55,7 +58,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
         }
         lastEventTime = currentTime;
 
-        Log.d(TAG, "Accessibility event: " + event.getEventType() + ", package: " + event.getPackageName());
+        Log.d("GOTr", "Accessibility event: " + event.getEventType() + ", package: " + event.getPackageName());
 
         // Restart timeout
         handler.removeCallbacks(timeoutRunnable);
@@ -68,7 +71,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
 
     @Override
     public void onInterrupt() {
-        Log.d(TAG, "TranslateAccessibilityService interrupted");
+        Log.d("GOTr", "TranslateAccessibilityService interrupted");
         endSession();
     }
 
@@ -76,7 +79,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
      * Uruchamia sesję asystenta - wywoływane z VoiceInteractionService
      */
     public void startAssistantSession() {
-        Log.d(TAG, "Starting assistant session");
+        Log.d("GOTr", "Starting assistant session");
         isAssistantSession = true;
         lastEventTime = System.currentTimeMillis();
         
@@ -89,7 +92,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
      * Kończy sesję asystenta
      */
     private void endSession() {
-        Log.d(TAG, "Ending assistant session");
+        Log.d("GOTr", "Ending assistant session");
         isAssistantSession = false;
         handler.removeCallbacks(timeoutRunnable);
     }
@@ -98,12 +101,12 @@ public class TranslateAccessibilityService extends AccessibilityService {
         try {
             String selectedText = findSelectedText(event);
             if (!TextUtils.isEmpty(selectedText)) {
-                Log.d(TAG, "Found selected text: " + selectedText);
+                Log.d("GOTr", "Found selected text: " + selectedText);
                 redirectToTranslateActivity(selectedText);
                 endSession(); // Zakończ sesję po znalezieniu tekstu
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error processing text selection", e);
+            Log.e("GOTr", "Error processing text selection", e);
         }
     }
 
@@ -136,7 +139,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
                 if (start >= 0 && end > start && end <= text.length()) {
                     String selected = text.subSequence(start, end).toString().trim();
                     if (!TextUtils.isEmpty(selected) && selected.length() > 1) { // Minimum 2 znaki
-                        Log.d(TAG, "Text selection found: " + selected);
+                        Log.d("GOTr", "Text selection found: " + selected);
                         return selected;
                     }
                 }
@@ -153,7 +156,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
                 }
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error finding selected text in node", e);
+            Log.e("GOTr", "Error finding selected text in node", e);
         }
         
         return null;
@@ -171,16 +174,16 @@ public class TranslateAccessibilityService extends AccessibilityService {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             
             startActivity(intent);
-            Log.d(TAG, "Successfully redirected to TranslateActivity");
+            Log.d("GOTr", "Successfully redirected to TranslateActivity");
         } catch (Exception e) {
-            Log.e(TAG, "Failed to start TranslateActivity", e);
+            Log.e("GOTr", "Failed to start TranslateActivity", e);
         }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "TranslateAccessibilityService destroyed");
+        Log.d("GOTr", "TranslateAccessibilityService destroyed");
         handler.removeCallbacks(timeoutRunnable);
     }
 }
