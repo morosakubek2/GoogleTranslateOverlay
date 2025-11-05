@@ -1,13 +1,18 @@
 package com.google.android.apps.translate.assistant;
 
-import android.os.Bundle;
+import android.content.ComponentName;
 import android.service.voice.VoiceInteractionService;
-import android.service.voice.VoiceInteractionSession;
 
 public class VoiceAssistantService extends VoiceInteractionService {
 
     @Override
-    public VoiceInteractionSession onNewSession(Bundle args) {
-        return new TranslateSession(this);
+    public void onReady() {
+        super.onReady();
+        // Wskazujemy, że sesja jest obsługiwana przez VoiceInteractionSessionService
+    }
+
+    @Override
+    public ComponentName getSessionComponentName() {
+        return new ComponentName(this, VoiceInteractionSessionService.class);
     }
 }
