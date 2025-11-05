@@ -16,6 +16,13 @@ public class TranslateSession extends VoiceInteractionSession {
 
     public TranslateSession(Context context) {
         super(context);
+        Log.d(TAG, "TranslateSession created");
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        Log.d(TAG, "onCreate called");
     }
 
     @Override
@@ -40,15 +47,16 @@ public class TranslateSession extends VoiceInteractionSession {
             Log.d(TAG, "Selected text found: " + selectedText);
             redirectToTranslateActivity(selectedText);
         } else {
-            Log.d(TAG, "No text selected");
+            Log.d(TAG, "No text selected - finishing session");
         }
         
-        hide();
+        // Zamykamy sesję asystenta
         finish();
     }
 
     private String extractSelectedText(AssistStructure structure) {
         if (structure == null) {
+            Log.w(TAG, "extractSelectedText: structure is null");
             return null;
         }
 
@@ -56,21 +64,25 @@ public class TranslateSession extends VoiceInteractionSession {
             AssistStructure.WindowNode window = structure.getWindowNodeAt(i);
             ViewNode root = window.getRootViewNode();
             String text = traverseNode(root);
-            if (text != null) return text;
+            if (text != null) {
+                Log.d(TAG, "Found text in window " + i);
+                return text;
+            }
         }
+        Log.d(TAG, "No selected text found in any window");
         return null;
     }
 
     private String traverseNode(ViewNode node) {
         if (node == null) return null;
 
-        if (node.getText() != null) {
+        CharSequence nodeText = node.getText();
+        if (nodeText != null) {
             int start = node.getTextSelectionStart();
             int end = node.getTextSelectionEnd();
             
-            if (start >= 0 && end > start) {
-                CharSequence text = node.getText();
-                String selected = text.subSequence(start, end).toString();
+            if (start >= 0 && end > start && end <= nodeText.length()) {
+                String selected = nodeText.subSequence(start, end).toString();
                 Log.d(TAG, "Found selection: " + selected);
                 return selected;
             }
@@ -92,10 +104,10 @@ public class TranslateSession extends VoiceInteractionSession {
             ));
             intent.setType("text/plain");
             intent.putExtra(Intent.EXTRA_TEXT, text);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             
             getContext().startActivity(intent);
-            Log.d(TAG, "Redirected to TranslateActivity with text: " + text);
+            Log.d(TAG, "Successfully redirected to TranslateActivity with text: " + text);
         } catch (Exception e) {
             Log.e(TAG, "Failed to start TranslateActivity", e);
         }
