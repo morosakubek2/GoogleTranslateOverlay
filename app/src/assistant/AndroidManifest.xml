@@ -2,6 +2,7 @@
 
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.BIND_VOICE_INTERACTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
 
@@ -41,6 +42,53 @@
             <intent-filter>
                 <action android:name="android.intent.action.ASSIST" />
                 <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- TranslateActivity - obsługuje pop-up (współdzielone z main) -->
+        <activity
+            android:name=".TranslateActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <!-- Share tekst -->
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_share">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <!-- Share obraz -->
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_share">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <!-- TRANSLATE action -->
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_search">
+                <action android:name="android.intent.action.TRANSLATE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <!-- TapToTranslateActivity - PROCESS_TEXT (współdzielone z main) -->
+        <activity
+            android:name=".copydrop.gm3.TapToTranslateActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_search">
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
 
