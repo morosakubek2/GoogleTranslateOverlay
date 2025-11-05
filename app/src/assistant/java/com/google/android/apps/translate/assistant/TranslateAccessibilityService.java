@@ -83,6 +83,9 @@ public class TranslateAccessibilityService extends AccessibilityService {
         isAssistantSession = true;
         lastEventTime = System.currentTimeMillis();
         
+        // ZMIANA: Aktywnie sprawdź bieżące zaznaczenie w aktywnym oknie
+        checkCurrentSelection();
+        
         // Timeout na wypadek, gdyby tekst nie został znaleziony
         handler.removeCallbacks(timeoutRunnable);
         handler.postDelayed(timeoutRunnable, SESSION_TIMEOUT_MS);
@@ -95,6 +98,30 @@ public class TranslateAccessibilityService extends AccessibilityService {
         Log.d("GOTr", "Ending assistant session");
         isAssistantSession = false;
         handler.removeCallbacks(timeoutRunnable);
+    }
+
+    // ZMIANA: Nowa metoda do sprawdzenia bieżącego stanu okna
+    private void checkCurrentSelection() {
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root == null) {
+            Log.d("GOTr", "No active window root found");
+            return;
+        }
+
+        try {
+            String selectedText = findSelectedTextInNode(root);
+            if (!TextUtils.isEmpty(selectedText)) {
+                Log.d("GOTr", "Found current selected text: " + selectedText);
+                redirectToTranslateActivity(selectedText);
+                endSession(); // Zakończ sesję po znalezieniu tekstu
+            } else {
+                Log.d("GOTr", "No current selection found in active window");
+            }
+        } catch (Exception e) {
+            Log.e("GOTr", "Error checking current selection", e);
+        } finally {
+            root.recycle();
+        }
     }
 
     private void processTextSelection(AccessibilityEvent event) {
@@ -145,11 +172,12 @@ public class TranslateAccessibilityService extends AccessibilityService {
                 }
             }
 
-            // Rekurencyjnie przeszukaj dzieci (ogranicz głębokość dla wydajności)
-            for (int i = 0; i < node.getChildCount() && i < 10; i++) { // Max 10 dzieci
+            // Rekurencyjnie przeszukaj dzieci (zwiększono limit dla lepszego pokrycia, ale nadal ograniczony dla wydajności)
+            for (int i = 0; i < node.getChildCount() && i < 20; i++) { // ZMIANA: Zwiększono z 10 na 20
                 AccessibilityNodeInfo child = node.getChild(i);
                 if (child != null) {
                     String result = findSelectedTextInNode(child);
+                    child.recycle(); // ZMIANA: Dodaj recycle dla dzieci, by uniknąć memory leak
                     if (result != null) {
                         return result;
                     }
