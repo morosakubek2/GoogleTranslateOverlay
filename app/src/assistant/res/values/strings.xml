@@ -1,0 +1,14 @@
+<resources>
+    <string name="accessibility_service_description">Pomoc przy tłumaczeniu tekstu podczas używania asystenta</string>
+</resources>
+
+<!-- Plik: app/src/assistant/res/values/arrays.xml -->
+<resources>
+    <array name="accessibility_target_packages">
+        <item>com.onyx.neverland.alreaderpro</item>
+        <item>org.mozilla.firefox</item>
+        <item>com.android.chrome</item>
+        <item>com.google.android.apps.docs</item>
+        <item>com.google.android.keep</item>
+    </array>
+</resources>
