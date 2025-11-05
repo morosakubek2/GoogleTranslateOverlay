@@ -1,6 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.BIND_VOICE_INTERACTION" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <application>
@@ -28,19 +27,6 @@
             </intent-filter>
         </service>
 
-        <!-- Accessibility Service - wykrywa zaznaczony tekst -->
-        <service
-            android:name=".assistant.TranslateAccessibilityService"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
-        </service>
-
         <!-- Aktywność do ustawień asystenta -->
         <activity
             android:name=".assistant.SetupAssistantActivity"
@@ -57,7 +43,7 @@
             </intent-filter>
         </activity>
 
-        <!-- TranslateActivity - pop-up -->
+        <!-- TranslateActivity - obsługuje pop-up (współdzielone z main) -->
         <activity
             android:name=".TranslateActivity"
             android:exported="true"
@@ -89,7 +75,7 @@
             </intent-filter>
         </activity>
 
-        <!-- TapToTranslateActivity - PROCESS_TEXT -->
+        <!-- TapToTranslateActivity - PROCESS_TEXT (współdzielone z main) -->
         <activity
             android:name=".copydrop.gm3.TapToTranslateActivity"
             android:exported="true"
