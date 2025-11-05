@@ -1,6 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="android.permission.BIND_VOICE_INTERACTION" />
 
     <application>
 
@@ -22,6 +23,9 @@
             android:name=".assistant.TranslateSessionService"
             android:exported="true"
             android:permission="android.permission.BIND_VOICE_INTERACTION">
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionSessionService" />
+            </intent-filter>
         </service>
 
         <!-- Aktywność do ustawień asystenta -->
