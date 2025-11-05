@@ -1,5 +1,6 @@
 package com.google.android.apps.translate.assistant;
 
+import android.content.Intent;
 import android.service.voice.VoiceInteractionService;
 import android.util.Log;
 
