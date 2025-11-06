@@ -1,5 +1,6 @@
 package com.google.android.apps.translate.assistant;
 
+import android.content.Intent;
 import android.speech.RecognitionService;
 import android.util.Log;
 
@@ -7,9 +8,10 @@ public class TranslateRecognitionService extends RecognitionService {
     private static final String TAG = "GOTr";
 
     @Override
-    protected void onStartListening(RecognitionService.Callback callback) {
+    protected void onStartListening(Intent intent, RecognitionService.Callback callback) {
         Log.d(TAG, "TranslateRecognitionService: onStartListening");
         // Pusta implementacja - nie używamy rozpoznawania mowy
+        callback.readyForSpeech(null);
     }
 
     @Override
@@ -22,17 +24,5 @@ public class TranslateRecognitionService extends RecognitionService {
     protected void onCancel(RecognitionService.Callback callback) {
         Log.d(TAG, "TranslateRecognitionService: onCancel");
         // Pusta implementacja
-    }
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        Log.d(TAG, "TranslateRecognitionService created");
-    }
-
-    @Override
-    public void onDestroy() {
-        Log.d(TAG, "TranslateRecognitionService destroyed");
-        super.onDestroy();
     }
 }
