@@ -6,16 +6,11 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.service.voice.VoiceInteractionSession;
 import android.text.TextUtils;
 import android.util.Log;
 
 public class TranslateSession extends VoiceInteractionSession {
-
-    private Handler handler = new Handler(Looper.getMainLooper());
-    private String originalClipboardText = "";
 
     public TranslateSession(Context context) {
         super(context);
@@ -32,109 +27,42 @@ public class TranslateSession extends VoiceInteractionSession {
     public void onHandleAssist(Bundle data, AssistStructure structure, android.app.assist.AssistContent content) {
         Log.d("GOTr", "=== ASSIST START ===");
         
-        // 1. Spróbuj znaleźć tekst w standardowych miejscach
-        String text = findTextInAssistData(data, structure, content);
-        
-        if (!TextUtils.isEmpty(text)) {
-            Log.d("GOTr", "Found text in assist data: " + text);
-            redirectToTranslateActivity(text);
-            finish();
-            return;
-        }
-
-        // 2. Jeśli nie znaleziono tekstu, użyj kopiowania + AccessibilityService do schowka
-        Log.d("GOTr", "No text found - triggering copy + clipboard read");
-        triggerCopyAndReadClipboard();
-    }
-
-    private String findTextInAssistData(Bundle data, AssistStructure structure, android.app.assist.AssistContent content) {
-        // Sprawdź AssistContent
+        // 1. Sprawdź AssistContent
         if (content != null && content.getIntent() != null) {
             Intent intent = content.getIntent();
             String text = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
             if (!TextUtils.isEmpty(text)) {
-                return text;
+                Log.d("GOTr", "Found text in AssistContent: " + text);
+                redirectToTranslateActivity(text);
+                finish();
+                return;
             }
         }
 
-        // Sprawdź Bundle
+        // 2. Sprawdź Bundle
         if (data != null) {
             String text = data.getString(Intent.EXTRA_PROCESS_TEXT);
             if (!TextUtils.isEmpty(text)) {
-                return text;
-            }
-        }
-
-        // Sprawdź AssistStructure
-        return extractSelectedText(structure);
-    }
-
-    private void triggerCopyAndReadClipboard() {
-        // Najpierw zapisz oryginalny schowek przez AccessibilityService
-        saveOriginalClipboard();
-        
-        // Wyślij akcję kopiowania
-        boolean copySuccess = performGlobalAction(GLOBAL_ACTION_COPY);
-        
-        if (copySuccess) {
-            Log.d("GOTr", "Copy action triggered successfully");
-            
-            // Poczekaj chwilę na skopiowanie tekstu, potem przeczytaj schowek
-            handler.postDelayed(this::readClipboardAfterCopy, 500);
-        } else {
-            Log.e("GOTr", "Copy action failed");
-            // Fallback: spróbuj bezpośrednio przez PROCESS_TEXT
-            startProcessTextFallback();
-            finish();
-        }
-    }
-
-    private void saveOriginalClipboard() {
-        ClipboardAccessibilityService.getClipboardText(new ClipboardAccessibilityService.ClipboardCallback() {
-            @Override
-            public void onClipboardText(String text) {
-                originalClipboardText = text != null ? text : "";
-                Log.d("GOTr", "Saved original clipboard: " + originalClipboardText);
-            }
-        });
-    }
-
-    private void readClipboardAfterCopy() {
-        ClipboardAccessibilityService.getClipboardText(new ClipboardAccessibilityService.ClipboardCallback() {
-            @Override
-            public void onClipboardText(String text) {
-                if (!TextUtils.isEmpty(text)) {
-                    // Sprawdź czy tekst się zmienił (czy udało się skopiować nowy tekst)
-                    if (!text.equals(originalClipboardText) && text.length() > 1) {
-                        Log.d("GOTr", "Found new text from clipboard: " + text);
-                        redirectToTranslateActivity(text);
-                    } else {
-                        Log.d("GOTr", "Clipboard text unchanged or too short - trying fallback");
-                        startProcessTextFallback();
-                    }
-                } else {
-                    Log.d("GOTr", "No text in clipboard - trying fallback");
-                    startProcessTextFallback();
-                }
+                Log.d("GOTr", "Found text in Bundle: " + text);
+                redirectToTranslateActivity(text);
                 finish();
+                return;
             }
-        });
-    }
+        }
 
-    private void startProcessTextFallback() {
-        Intent processTextIntent = new Intent(Intent.ACTION_PROCESS_TEXT);
-        processTextIntent.setType("text/plain");
-        processTextIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        
-        // Ustaw naszą aplikację jako handler
-        processTextIntent.setComponent(new ComponentName(
-            getContext().getPackageName(),
-            "com.google.android.apps.translate.copydrop.gm3.TapToTranslateActivity"
-        ));
-        
-        // Jeśli nie możemy uruchomić PROCESS_TEXT, to już nie mamy więcej opcji
-        getContext().startActivity(processTextIntent);
-        Log.d("GOTr", "Started PROCESS_TEXT fallback");
+        // 3. Sprawdź AssistStructure
+        String selectedText = extractSelectedText(structure);
+        if (!TextUtils.isEmpty(selectedText)) {
+            Log.d("GOTr", "Found text in AssistStructure: " + selectedText);
+            redirectToTranslateActivity(selectedText);
+            finish();
+            return;
+        }
+
+        // 4. Fallback - uruchom PROCESS_TEXT
+        Log.d("GOTr", "No text found - starting PROCESS_TEXT");
+        startProcessText();
+        finish();
     }
 
     private String extractSelectedText(AssistStructure structure) {
@@ -173,6 +101,21 @@ public class TranslateSession extends VoiceInteractionSession {
         return null;
     }
 
+    private void startProcessText() {
+        Intent processTextIntent = new Intent(Intent.ACTION_PROCESS_TEXT);
+        processTextIntent.setType("text/plain");
+        processTextIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        
+        // Ustaw naszą aplikację jako handler
+        processTextIntent.setComponent(new ComponentName(
+            getContext().getPackageName(),
+            "com.google.android.apps.translate.copydrop.gm3.TapToTranslateActivity"
+        ));
+        
+        getContext().startActivity(processTextIntent);
+        Log.d("GOTr", "Started PROCESS_TEXT");
+    }
+
     private void redirectToTranslateActivity(String text) {
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setComponent(new ComponentName(
@@ -184,7 +127,7 @@ public class TranslateSession extends VoiceInteractionSession {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         
         getContext().startActivity(intent);
-        Log.d("GOTr", "Redirected to TranslateActivity with text: " + text);
+        Log.d("GOTr", "Redirected to TranslateActivity");
     }
 
     @Override
