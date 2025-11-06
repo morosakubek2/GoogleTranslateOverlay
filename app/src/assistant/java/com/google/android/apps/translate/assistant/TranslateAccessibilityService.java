@@ -2,27 +2,44 @@ package com.google.android.apps.translate.assistant;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
+import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 
 public class TranslateAccessibilityService extends AccessibilityService {
     private static final String TAG = "GOTr";
+    private static final String ACTION_ACTIVATE_ASSISTANT = "ACTIVATE_ASSISTANT";
+
     private ClipboardManager clipboardManager;
     private String originalClipboardContent;
     private boolean isAssistantTriggered = false;
     private long assistantTriggerTime = 0;
 
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (ACTION_ACTIVATE_ASSISTANT.equals(intent.getAction())) {
+                Log.d(TAG, "Received broadcast to activate assistant");
+                activateForTranslation();
+            }
+        }
+    };
+
     @Override
     public void onCreate() {
         super.onCreate();
         clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        Log.d(TAG, "TranslateAccessibilityService created");
+        // Zarejestruj odbiorcę broadcastów
+        IntentFilter filter = new IntentFilter(ACTION_ACTIVATE_ASSISTANT);
+        registerReceiver(receiver, filter);
+        Log.d(TAG, "TranslateAccessibilityService created and receiver registered");
     }
 
     @Override
@@ -39,7 +56,6 @@ public class TranslateAccessibilityService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        // Działa tylko gdy asystent został aktywowany
         if (!isAssistantTriggered) {
             return;
         }
@@ -61,7 +77,13 @@ public class TranslateAccessibilityService extends AccessibilityService {
         Log.d(TAG, "TranslateAccessibilityService interrupted");
     }
 
-    // Metoda wywoływana przez Voice Service do aktywacji
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(receiver);
+        Log.d(TAG, "TranslateAccessibilityService destroyed");
+    }
+
     public void activateForTranslation() {
         Log.d(TAG, "Accessibility service activated for translation");
         isAssistantTriggered = true;
@@ -73,11 +95,12 @@ public class TranslateAccessibilityService extends AccessibilityService {
         if (!isAssistantTriggered) return;
 
         Log.d(TAG, "Handling assistant activation - performing copy");
-        boolean copySuccess = performGlobalAction(GLOBAL_ACTION_COPY);
-        
+        // Używamy wartości 16 dla GLOBAL_ACTION_COPY
+        boolean copySuccess = performGlobalAction(16); // 16 = GLOBAL_ACTION_COPY
+
         if (copySuccess) {
             SystemClock.sleep(300); // Czekaj na skopiowanie
-            
+
             if (hasNewTextInClipboard()) {
                 Log.d(TAG, "New text detected - launching translation");
                 launchTranslation();
@@ -87,7 +110,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
         } else {
             Log.d(TAG, "Copy action failed");
         }
-        
+
         // Reset bez względu na wynik
         isAssistantTriggered = false;
         restoreOriginalClipboard();
@@ -116,10 +139,10 @@ public class TranslateAccessibilityService extends AccessibilityService {
         if (newText == null) return false;
 
         String newTextStr = newText.toString().trim();
-        boolean hasNewText = !newTextStr.equals(originalClipboardContent) && 
-                           !newTextStr.isEmpty() && 
-                           newTextStr.length() > 1;
-        
+        boolean hasNewText = !newTextStr.equals(originalClipboardContent) &&
+                !newTextStr.isEmpty() &&
+                newTextStr.length() > 1;
+
         Log.d(TAG, "New text in clipboard: " + hasNewText);
         return hasNewText;
     }
@@ -137,12 +160,12 @@ public class TranslateAccessibilityService extends AccessibilityService {
             Intent processTextIntent = new Intent(Intent.ACTION_PROCESS_TEXT);
             processTextIntent.setType("text/plain");
             processTextIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            
+
             processTextIntent.setComponent(new ComponentName(
-                getPackageName(),
-                "com.google.android.apps.translate.copydrop.gm3.TapToTranslateActivity"
+                    getPackageName(),
+                    "com.google.android.apps.translate.copydrop.gm3.TapToTranslateActivity"
             ));
-            
+
             startActivity(processTextIntent);
             Log.d(TAG, "Translation activity launched");
         } catch (Exception e) {
