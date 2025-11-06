@@ -5,10 +5,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
-import android.view.accessibility.AccessibilityManager;
-import android.accessibilityservice.AccessibilityServiceInfo;
-
-import java.util.List;
 
 public class SetupAssistantActivity extends Activity {
     
@@ -18,24 +14,14 @@ public class SetupAssistantActivity extends Activity {
         
         Log.d("GOTr", "SetupAssistantActivity started");
         
-        if (!isAccessibilityEnabled()) {
-            Log.d("GOTr", "Accessibility not enabled - prompting user");
-            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-        } else {
-            Log.d("GOTr", "Accessibility already enabled");
+        Log.d("GOTr", "Opening voice input settings to set our app as assistant");
+        try {
+            startActivity(new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS));
+        } catch (Exception e) {
+            Log.e("GOTr", "Failed to open voice input settings", e);
+            startActivity(new Intent(Settings.ACTION_SETTINGS));
         }
         
         finish();
-    }
-
-    private boolean isAccessibilityEnabled() {
-        AccessibilityManager am = (AccessibilityManager) getSystemService(ACCESSIBILITY_SERVICE);
-        List<AccessibilityServiceInfo> enabledServices = am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
-        for (AccessibilityServiceInfo info : enabledServices) {
-            if (info.getId().equals(getPackageName() + "/.assistant.TranslateAccessibilityService")) {
-                return true;
-            }
-        }
-        return false;
     }
 }
