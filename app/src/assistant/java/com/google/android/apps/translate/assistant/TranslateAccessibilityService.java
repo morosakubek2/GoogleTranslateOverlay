@@ -18,7 +18,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
 
     private static final long SESSION_TIMEOUT_MS = 5000;
     private static final long DEBOUNCE_DELAY_MS = 300;
-    private static final long RESUME_DELAY_MS = 800;
+    private static final long RESUME_DELAY_MS = 500;
 
     private static TranslateAccessibilityService instance;
 
@@ -32,9 +32,12 @@ public class TranslateAccessibilityService extends AccessibilityService {
     protected void onServiceConnected() {
         super.onServiceConnected();
         instance = this;
-        Log.d("GOTr", "TranslateAccessibilityService connected – applying config");
-
-        AccessibilityServiceInfo config = new AccessibilityServiceInfo();
+        Log.d("GOTr", "TranslateAccessibilityService connected");
+        
+        AccessibilityServiceInfo config = getServiceInfo();
+        if (config == null) {
+            config = new AccessibilityServiceInfo();
+        }
         config.eventTypes = AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED
                 | AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 | AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED;
@@ -43,8 +46,9 @@ public class TranslateAccessibilityService extends AccessibilityService {
                 | AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
                 | AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS;
         config.notificationTimeout = 100;
-
+        
         setServiceInfo(config);
+        Log.d("GOTr", "Service configured with RETRIEVE_INTERACTIVE_WINDOWS flag");
     }
 
     public static boolean startSession() {
@@ -54,15 +58,6 @@ public class TranslateAccessibilityService extends AccessibilityService {
         }
         Log.w("GOTr", "AccessibilityService not running!");
         return false;
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null && "START_SESSION".equals(intent.getAction())) {
-            Log.d("GOTr", "Received start session command");
-            startAssistantSession();
-        }
-        return START_NOT_STICKY;
     }
 
     @Override
@@ -77,7 +72,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
         }
         lastEventTime = currentTime;
 
-        Log.d("GOTr", "Accessibility event: " + event.getEventType() + ", package: " + event.getPackageName());
+        Log.d("GOTr", "Event during session: " + event.getEventType());
 
         handler.removeCallbacks(timeoutRunnable);
         handler.postDelayed(timeoutRunnable, SESSION_TIMEOUT_MS);
@@ -86,22 +81,22 @@ public class TranslateAccessibilityService extends AccessibilityService {
             processTextSelection(event);
         } else if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED 
                 || event.getEventType() == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
-            Log.d("GOTr", "Window changed – checking selection");
             checkCurrentSelection();
         }
     }
 
     @Override
     public void onInterrupt() {
-        Log.d("GOTr", "TranslateAccessibilityService interrupted");
+        Log.d("GOTr", "Service interrupted");
         endSession();
     }
 
     private void startAssistantSession() {
-        Log.d("GOTr", "Starting assistant session");
+        Log.d("GOTr", "Starting session");
         isAssistantSession = true;
         lastEventTime = System.currentTimeMillis();
         
+        handler.post(checkSelectionRunnable);
         handler.postDelayed(checkSelectionRunnable, RESUME_DELAY_MS);
         
         handler.removeCallbacks(timeoutRunnable);
@@ -109,7 +104,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
     }
 
     private void endSession() {
-        Log.d("GOTr", "Ending assistant session");
+        Log.d("GOTr", "Ending session");
         isAssistantSession = false;
         handler.removeCallbacks(timeoutRunnable);
         handler.removeCallbacks(checkSelectionRunnable);
@@ -130,35 +125,27 @@ public class TranslateAccessibilityService extends AccessibilityService {
                 continue;
             }
 
-            try {
-                Log.d("GOTr", "Checking window: " + root.getPackageName());
-                String selectedText = findSelectedTextInNode(root);
-                if (!TextUtils.isEmpty(selectedText)) {
-                    Log.d("GOTr", "Found current selected text in window: " + selectedText);
-                    redirectToTranslateActivity(selectedText);
-                    endSession();
-                    return;
-                }
-            } catch (Exception e) {
-                Log.e("GOTr", "Error checking window", e);
-            } finally {
-                root.recycle();
-            }
-        }
-
-        Log.d("GOTr", "No current selection found in any window");
-    }
-
-    private void processTextSelection(AccessibilityEvent event) {
-        try {
-            String selectedText = findSelectedText(event);
+            Log.d("GOTr", "Checking window: " + root.getPackageName());
+            String selectedText = findSelectedTextInNode(root);
+            root.recycle();
+            
             if (!TextUtils.isEmpty(selectedText)) {
                 Log.d("GOTr", "Found selected text: " + selectedText);
                 redirectToTranslateActivity(selectedText);
                 endSession();
+                return;
             }
-        } catch (Exception e) {
-            Log.e("GOTr", "Error processing text selection", e);
+        }
+
+        Log.d("GOTr", "No selection found");
+    }
+
+    private void processTextSelection(AccessibilityEvent event) {
+        String selectedText = findSelectedText(event);
+        if (!TextUtils.isEmpty(selectedText)) {
+            Log.d("GOTr", "Found text from event: " + selectedText);
+            redirectToTranslateActivity(selectedText);
+            endSession();
         }
     }
 
@@ -168,11 +155,9 @@ public class TranslateAccessibilityService extends AccessibilityService {
             return null;
         }
 
-        try {
-            return findSelectedTextInNode(source);
-        } finally {
-            source.recycle();
-        }
+        String result = findSelectedTextInNode(source);
+        source.recycle();
+        return result;
     }
 
     private String findSelectedTextInNode(AccessibilityNodeInfo node) {
@@ -180,66 +165,53 @@ public class TranslateAccessibilityService extends AccessibilityService {
             return null;
         }
 
-        try {
-            CharSequence text = node.getText();
-            if (text != null) {
-                int start = node.getTextSelectionStart();
-                int end = node.getTextSelectionEnd();
-                
-                if (start >= 0 && end > start && end <= text.length()) {
-                    String selected = text.subSequence(start, end).toString().trim();
-                    if (!TextUtils.isEmpty(selected) && selected.length() > 1) {
-                        Log.d("GOTr", "Text selection found: " + selected + " (full text: " + text + ")"); 
-                        return selected;
-                    }
-                } else if (node.isSelected()) {
-                    Log.d("GOTr", "Node is selected but no start/end – using full text: " + text);
-                    return text.toString().trim();
-                } else {
-                    Log.d("GOTr", "Node has text but no valid selection: " + text); 
+        CharSequence text = node.getText();
+        if (text != null) {
+            int start = node.getTextSelectionStart();
+            int end = node.getTextSelectionEnd();
+            
+            if (start >= 0 && end > start && end <= text.length()) {
+                String selected = text.subSequence(start, end).toString().trim();
+                if (!TextUtils.isEmpty(selected) && selected.length() > 1) {
+                    Log.d("GOTr", "Selection: " + selected);
+                    return selected;
                 }
             }
+        }
 
-            for (int i = 0; i < node.getChildCount() && i < 50; i++) {
-                AccessibilityNodeInfo child = node.getChild(i);
-                if (child != null) {
-                    String result = findSelectedTextInNode(child);
-                    child.recycle();
-                    if (result != null) {
-                        return result;
-                    }
+        for (int i = 0; i < Math.min(node.getChildCount(), 50); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child != null) {
+                String result = findSelectedTextInNode(child);
+                child.recycle();
+                if (result != null) {
+                    return result;
                 }
             }
-        } catch (Exception e) {
-            Log.e("GOTr", "Error finding selected text in node", e);
         }
         
         return null;
     }
 
     private void redirectToTranslateActivity(String text) {
-        try {
-            Intent intent = new Intent(Intent.ACTION_SEND);
-            intent.setComponent(new ComponentName(
-                getPackageName(),
-                "com.google.android.apps.translate.TranslateActivity"
-            ));
-            intent.setType("text/plain");
-            intent.putExtra(Intent.EXTRA_TEXT, text);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            
-            startActivity(intent);
-            Log.d("GOTr", "Successfully redirected to TranslateActivity");
-        } catch (Exception e) {
-            Log.e("GOTr", "Failed to start TranslateActivity", e);
-        }
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setComponent(new ComponentName(
+            getPackageName(),
+            "com.google.android.apps.translate.TranslateActivity"
+        ));
+        intent.setType("text/plain");
+        intent.putExtra(Intent.EXTRA_TEXT, text);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        
+        startActivity(intent);
+        Log.d("GOTr", "Redirected to translator");
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         instance = null;
-        Log.d("GOTr", "TranslateAccessibilityService destroyed");
+        Log.d("GOTr", "Service destroyed");
         handler.removeCallbacks(timeoutRunnable);
         handler.removeCallbacks(checkSelectionRunnable);
     }
