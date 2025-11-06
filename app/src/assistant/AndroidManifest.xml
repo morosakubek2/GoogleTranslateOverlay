@@ -1,34 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
+    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
     <uses-permission android:name="android.permission.BIND_VOICE_INTERACTION" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <application>
-        <!-- VoiceInteractionService -->
-        <service
-            android:name=".assistant.VoiceAssistantService"
-            android:exported="true"
-            android:permission="android.permission.BIND_VOICE_INTERACTION"
-            android:label="Google Translate Overlay">
-            <meta-data
-                android:name="android.voice_interaction"
-                android:resource="@xml/voice_interaction_service" />
-            <intent-filter>
-                <action android:name="android.service.voice.VoiceInteractionService" />
-            </intent-filter>
-        </service>
-
-        <!-- VoiceInteractionSessionService -->
-        <service
-            android:name=".assistant.TranslateSessionService"
-            android:exported="true"
-            android:permission="android.permission.BIND_VOICE_INTERACTION">
-            <intent-filter>
-                <action android:name="android.service.voice.VoiceInteractionSessionService" />
-            </intent-filter>
-        </service>
-
-        <!-- Accessibility Service -->
         <service
             android:name=".assistant.TranslateAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
@@ -42,7 +17,28 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- Setup Activity -->
+        <service
+            android:name=".assistant.VoiceAssistantService"
+            android:exported="true"
+            android:permission="android.permission.BIND_VOICE_INTERACTION"
+            android:label="Google Translate Overlay">
+            <meta-data
+                android:name="android.voice_interaction"
+                android:resource="@xml/voice_interaction_service" />
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionService" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".assistant.TranslateSessionService"
+            android:exported="true"
+            android:permission="android.permission.BIND_VOICE_INTERACTION">
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionSessionService" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name=".assistant.SetupAssistantActivity"
             android:exported="true"
@@ -58,7 +54,6 @@
             </intent-filter>
         </activity>
 
-        <!-- TranslateActivity -->
         <activity
             android:name=".TranslateActivity"
             android:exported="true"
@@ -87,7 +82,6 @@
             </intent-filter>
         </activity>
 
-        <!-- TapToTranslateActivity -->
         <activity
             android:name=".copydrop.gm3.TapToTranslateActivity"
             android:exported="true"
@@ -101,6 +95,5 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
-
     </application>
 </manifest>
