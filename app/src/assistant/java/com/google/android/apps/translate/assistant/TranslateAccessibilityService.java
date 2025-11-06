@@ -20,6 +20,8 @@ public class TranslateAccessibilityService extends AccessibilityService {
     private static final long DEBOUNCE_DELAY_MS = 300;
     private static final long RESUME_DELAY_MS = 800;
 
+    private static TranslateAccessibilityService instance;
+
     private Handler handler = new Handler(Looper.getMainLooper());
     private boolean isAssistantSession = false;
     private long lastEventTime = 0;
@@ -29,6 +31,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        instance = this;
         Log.d("GOTr", "TranslateAccessibilityService connected – applying config");
 
         AccessibilityServiceInfo config = new AccessibilityServiceInfo();
@@ -42,6 +45,15 @@ public class TranslateAccessibilityService extends AccessibilityService {
         config.notificationTimeout = 100;
 
         setServiceInfo(config);
+    }
+
+    public static boolean startSession() {
+        if (instance != null) {
+            instance.startAssistantSession();
+            return true;
+        }
+        Log.w("GOTr", "AccessibilityService not running!");
+        return false;
     }
 
     @Override
@@ -85,7 +97,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
         endSession();
     }
 
-    public void startAssistantSession() {
+    private void startAssistantSession() {
         Log.d("GOTr", "Starting assistant session");
         isAssistantSession = true;
         lastEventTime = System.currentTimeMillis();
@@ -226,6 +238,7 @@ public class TranslateAccessibilityService extends AccessibilityService {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        instance = null;
         Log.d("GOTr", "TranslateAccessibilityService destroyed");
         handler.removeCallbacks(timeoutRunnable);
         handler.removeCallbacks(checkSelectionRunnable);
