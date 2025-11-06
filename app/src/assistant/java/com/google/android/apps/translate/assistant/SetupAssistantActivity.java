@@ -16,35 +16,15 @@ public class SetupAssistantActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        Log.d("GOTr", "SetupAssistantActivity started - action: " + getIntent().getAction());
+        Log.d("GOTr", "SetupAssistantActivity started");
         
-        String action = getIntent().getAction();
-        
-        if (Intent.ACTION_MAIN.equals(action)) {
-            Log.d("GOTr", "Launched from launcher - checking accessibility");
-            if (!isAccessibilityEnabled()) {
-                Log.d("GOTr", "Accessibility not enabled - prompting user");
-                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-            } else {
-                Log.d("GOTr", "Accessibility enabled - opening voice settings");
-                try {
-                    startActivity(new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS));
-                } catch (Exception e) {
-                    Log.e("GOTr", "Failed to open voice settings", e);
-                    startActivity(new Intent(Settings.ACTION_SETTINGS));
-                }
-            }
-            finish();
-            return;
+        if (!isAccessibilityEnabled()) {
+            Log.d("GOTr", "Accessibility not enabled - prompting user");
+            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+        } else {
+            Log.d("GOTr", "Accessibility already enabled");
         }
         
-        if (Intent.ACTION_ASSIST.equals(action)) {
-            Log.d("GOTr", "Called with ACTION_ASSIST - system will handle via VoiceInteractionService");
-            finish();
-            return;
-        }
-        
-        Log.d("GOTr", "Unknown action, finishing");
         finish();
     }
 
