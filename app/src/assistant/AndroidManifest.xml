@@ -1,11 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.BIND_VOICE_INTERACTION" />
-    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
-    <uses-permission android:name="android.permission.BIND_RECOGNITION_SERVICE" />
 
     <application>
-        <!-- VoiceInteractionService -->
+        <!-- VoiceInteractionService - tylko do obsługi gestów systemowych -->
         <service
             android:name=".assistant.VoiceAssistantService"
             android:exported="true"
@@ -19,31 +17,31 @@
             </intent-filter>
         </service>
 
-        <!-- RecognitionService - WYMAGANE dla Android 11 i starszych -->
+        <!-- VoiceInteractionSessionService -->
         <service
-            android:name=".assistant.TranslateRecognitionService"
+            android:name=".assistant.TranslateSessionService"
             android:exported="true"
-            android:permission="android.permission.BIND_RECOGNITION_SERVICE"
-            android:label="Google Translate Overlay">
+            android:permission="android.permission.BIND_VOICE_INTERACTION">
             <intent-filter>
-                <action android:name="android.speech.RecognitionService" />
+                <action android:name="android.service.voice.VoiceInteractionSessionService" />
             </intent-filter>
         </service>
 
-        <!-- Pozostałe usługi i aktywności bez zmian -->
+        <!-- AccessibilityService - faktyczna obsługa kopiowania -->
         <service
             android:name=".assistant.TranslateAccessibilityService"
             android:exported="true"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:label="Google Translate Overlay">
+            android:label="Google Translate Overlay - Accessibility">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
             <meta-data
                 android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service" />
+                android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <!-- Setup Activity -->
         <activity
             android:name=".assistant.SetupAssistantActivity"
             android:exported="true"
@@ -53,13 +51,51 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.ASSIST" />
+        </activity>
+
+        <!-- TranslateActivity -->
+        <activity
+            android:name=".TranslateActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_share">
+                <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_share">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_search">
+                <action android:name="android.intent.action.TRANSLATE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
 
-        <!-- Pozostałe aktywności bez zmian -->
+        <!-- TapToTranslateActivity -->
+        <activity
+            android:name=".copydrop.gm3.TapToTranslateActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter
+                android:label="!Translate"
+                android:icon="@android:drawable/ic_menu_search">
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
 
     </application>
 </manifest>
