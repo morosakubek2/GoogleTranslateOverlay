@@ -2,73 +2,57 @@ package com.google.android.apps.translate.assistant;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
-import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.os.SystemClock;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
 
 public class TranslateAccessibilityService extends AccessibilityService {
     private static final String TAG = "GOTr";
-    private static final String ACTION_ACTIVATE_ASSISTANT = "ACTIVATE_ASSISTANT";
-
     private ClipboardManager clipboardManager;
     private String originalClipboardContent;
-    private boolean isAssistantTriggered = false;
-    private long assistantTriggerTime = 0;
-
-    private BroadcastReceiver receiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (ACTION_ACTIVATE_ASSISTANT.equals(intent.getAction())) {
-                Log.d(TAG, "Received broadcast to activate assistant");
-                activateForTranslation();
-            }
-        }
-    };
+    private boolean isAssistantActive = false;
+    private Handler handler = new Handler(Looper.getMainLooper());
 
     @Override
     public void onCreate() {
         super.onCreate();
         clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        // Zarejestruj odbiorcę broadcastów
-        IntentFilter filter = new IntentFilter(ACTION_ACTIVATE_ASSISTANT);
-        registerReceiver(receiver, filter);
-        Log.d(TAG, "TranslateAccessibilityService created and receiver registered");
+        Log.d(TAG, "TranslateAccessibilityService created");
     }
 
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
         AccessibilityServiceInfo info = new AccessibilityServiceInfo();
-        info.eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
+        info.eventTypes = AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED | 
+                         AccessibilityEvent.TYPE_VIEW_FOCUSED |
+                         AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC;
-        info.flags = AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS;
+        info.flags = AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS |
+                    AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS;
         info.notificationTimeout = 100;
         setServiceInfo(info);
-        Log.d(TAG, "TranslateAccessibilityService connected and configured");
+        Log.d(TAG, "TranslateAccessibilityService connected");
     }
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        if (!isAssistantTriggered) {
-            return;
-        }
+        if (!isAssistantActive) return;
 
-        // Sprawdź czy minął maksymalny czas oczekiwania (2 sekundy)
-        if (SystemClock.uptimeMillis() - assistantTriggerTime > 2000) {
-            Log.d(TAG, "Assistant activation timeout - resetting");
-            isAssistantTriggered = false;
-            return;
-        }
-
-        if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            handleAssistantActivation();
+        Log.d(TAG, "Accessibility event: " + event.getEventType());
+        
+        // Gdy asystent jest aktywny, próbujemy znaleźć i skopiować tekst
+        if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || 
+            event.getEventType() == AccessibilityEvent.TYPE_VIEW_FOCUSED) {
+            
+            handler.postDelayed(this::attemptCopyText, 100);
         }
     }
 
@@ -77,42 +61,91 @@ public class TranslateAccessibilityService extends AccessibilityService {
         Log.d(TAG, "TranslateAccessibilityService interrupted");
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        unregisterReceiver(receiver);
-        Log.d(TAG, "TranslateAccessibilityService destroyed");
-    }
-
-    public void activateForTranslation() {
-        Log.d(TAG, "Accessibility service activated for translation");
-        isAssistantTriggered = true;
-        assistantTriggerTime = SystemClock.uptimeMillis();
+    public void activateAssistantMode() {
+        Log.d(TAG, "Assistant mode activated");
+        isAssistantActive = true;
         saveOriginalClipboard();
+        
+        // Automatyczna próba kopiowania po aktywacji
+        handler.postDelayed(this::attemptCopyText, 200);
+        
+        // Timeout po 3 sekundach
+        handler.postDelayed(() -> {
+            if (isAssistantActive) {
+                Log.d(TAG, "Assistant mode timeout");
+                isAssistantActive = false;
+                restoreOriginalClipboard();
+            }
+        }, 3000);
     }
 
-    private void handleAssistantActivation() {
-        if (!isAssistantTriggered) return;
+    private void attemptCopyText() {
+        if (!isAssistantActive) return;
 
-        Log.d(TAG, "Handling assistant activation - performing copy");
-        // Używamy wartości 16 dla GLOBAL_ACTION_COPY
-        boolean copySuccess = performGlobalAction(16); // 16 = GLOBAL_ACTION_COPY
-
-        if (copySuccess) {
-            SystemClock.sleep(300); // Czekaj na skopiowanie
-
-            if (hasNewTextInClipboard()) {
-                Log.d(TAG, "New text detected - launching translation");
-                launchTranslation();
-            } else {
-                Log.d(TAG, "No new text in clipboard - skipping translation");
-            }
-        } else {
-            Log.d(TAG, "Copy action failed");
+        Log.d(TAG, "Attempting to copy text from focused view");
+        
+        // Pobierz root node i znajdź zaznaczony tekst
+        AccessibilityNodeInfo rootNode = getRootInActiveWindow();
+        if (rootNode == null) {
+            Log.d(TAG, "No root node available");
+            return;
         }
 
-        // Reset bez względu na wynik
-        isAssistantTriggered = false;
+        // Szukaj zaznaczonego tekstu
+        AccessibilityNodeInfo selectedNode = findSelectedText(rootNode);
+        if (selectedNode != null) {
+            Log.d(TAG, "Found selected text node - attempting copy");
+            
+            // Wykonaj akcję kopiowania
+            boolean copySuccess = selectedNode.performAction(AccessibilityNodeInfo.ACTION_COPY);
+            Log.d(TAG, "Copy action result: " + copySuccess);
+            
+            if (copySuccess) {
+                handler.postDelayed(this::checkClipboardAndTranslate, 300);
+            }
+            
+            selectedNode.recycle();
+        } else {
+            Log.d(TAG, "No selected text found");
+        }
+        
+        rootNode.recycle();
+    }
+
+    private AccessibilityNodeInfo findSelectedText(AccessibilityNodeInfo root) {
+        // Szukaj węzła z zaznaczonym tekstem
+        if (root.isFocused() && root.isSelected() && root.getText() != null) {
+            return root;
+        }
+
+        for (int i = 0; i < root.getChildCount(); i++) {
+            AccessibilityNodeInfo child = root.getChild(i);
+            if (child != null) {
+                if (child.isFocused() && child.isSelected() && child.getText() != null) {
+                    return child;
+                }
+                
+                AccessibilityNodeInfo result = findSelectedText(child);
+                if (result != null) {
+                    return result;
+                }
+                child.recycle();
+            }
+        }
+        return null;
+    }
+
+    private void checkClipboardAndTranslate() {
+        if (!isAssistantActive) return;
+
+        if (hasNewTextInClipboard()) {
+            Log.d(TAG, "New text detected in clipboard - launching translation");
+            launchTranslation();
+        } else {
+            Log.d(TAG, "No new text in clipboard");
+        }
+        
+        isAssistantActive = false;
         restoreOriginalClipboard();
     }
 
@@ -139,11 +172,11 @@ public class TranslateAccessibilityService extends AccessibilityService {
         if (newText == null) return false;
 
         String newTextStr = newText.toString().trim();
-        boolean hasNewText = !newTextStr.equals(originalClipboardContent) &&
-                !newTextStr.isEmpty() &&
-                newTextStr.length() > 1;
-
-        Log.d(TAG, "New text in clipboard: " + hasNewText);
+        boolean hasNewText = !newTextStr.equals(originalClipboardContent) && 
+                           !newTextStr.isEmpty() && 
+                           newTextStr.length() > 1;
+        
+        Log.d(TAG, "Clipboard has new text: " + hasNewText + " - '" + newTextStr + "'");
         return hasNewText;
     }
 
@@ -160,12 +193,12 @@ public class TranslateAccessibilityService extends AccessibilityService {
             Intent processTextIntent = new Intent(Intent.ACTION_PROCESS_TEXT);
             processTextIntent.setType("text/plain");
             processTextIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
+            
             processTextIntent.setComponent(new ComponentName(
-                    getPackageName(),
-                    "com.google.android.apps.translate.copydrop.gm3.TapToTranslateActivity"
+                getPackageName(),
+                "com.google.android.apps.translate.copydrop.gm3.TapToTranslateActivity"
             ));
-
+            
             startActivity(processTextIntent);
             Log.d(TAG, "Translation activity launched");
         } catch (Exception e) {
