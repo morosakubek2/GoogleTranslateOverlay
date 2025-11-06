@@ -83,4 +83,10 @@
                 android:label="!Translate"
                 android:icon="@android:drawable/ic_menu_search">
                 <action android:name="android.intent.action.PROCESS_TEXT" />
-                <category android:name="android.intent.category.DEFAULT
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+    </application>
+</manifest>
