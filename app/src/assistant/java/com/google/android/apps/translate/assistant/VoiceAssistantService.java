@@ -1,6 +1,5 @@
 package com.google.android.apps.translate.assistant;
 
-import android.content.Intent;
 import android.service.voice.VoiceInteractionService;
 import android.util.Log;
 
@@ -19,14 +18,7 @@ public class VoiceAssistantService extends VoiceInteractionService {
         setDisabledShowContext(0);
     }
 
-    // ZMIANA: Obsłuż launch z keyguard – start sesję accessibility bezpośrednio
-    @Override
-    public void onLaunchVoiceAssistFromKeyguard() {
-        Log.d("GOTr", "Launched from keyguard – starting accessibility session");
-        Intent serviceIntent = new Intent(this, TranslateAccessibilityService.class);
-        serviceIntent.setAction("START_SESSION");
-        startService(serviceIntent);
-    }
+    // Usuwamy metodę onLaunchVoiceAssistFromKeyguard, ponieważ nie używamy już AccessibilityService
 
     @Override
     public void onShutdown() {
