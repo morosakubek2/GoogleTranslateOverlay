@@ -1,23 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
+
     <uses-permission android:name="android.permission.BIND_VOICE_INTERACTION" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-    <uses-permission android:name="android.permission.READ_CLIPBOARD" />
 
     <application>
-        <service
-            android:name=".assistant.TranslateAccessibilityService"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:exported="true"
-            android:label="Google Translate Overlay Accessibility">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
-        </service>
-
+        <!-- VoiceInteractionService -->
         <service
             android:name=".assistant.VoiceAssistantService"
             android:exported="true"
@@ -31,6 +18,7 @@
             </intent-filter>
         </service>
 
+        <!-- VoiceInteractionSessionService -->
         <service
             android:name=".assistant.TranslateSessionService"
             android:exported="true"
@@ -40,6 +28,7 @@
             </intent-filter>
         </service>
 
+        <!-- Setup Activity -->
         <activity
             android:name=".assistant.SetupAssistantActivity"
             android:exported="true"
@@ -55,6 +44,7 @@
             </intent-filter>
         </activity>
 
+        <!-- TranslateActivity -->
         <activity
             android:name=".TranslateActivity"
             android:exported="true"
@@ -83,6 +73,7 @@
             </intent-filter>
         </activity>
 
+        <!-- TapToTranslateActivity -->
         <activity
             android:name=".copydrop.gm3.TapToTranslateActivity"
             android:exported="true"
@@ -96,5 +87,6 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+
     </application>
 </manifest>
