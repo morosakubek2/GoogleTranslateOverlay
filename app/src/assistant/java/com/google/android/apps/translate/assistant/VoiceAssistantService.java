@@ -1,26 +1,15 @@
 package com.google.android.apps.translate.assistant;
 
-import android.service.voice.VoiceInteractionService;
+import android.os.Bundle;
+import android.service.voice.VoiceInteractionSession;
+import android.service.voice.VoiceInteractionSessionService;
 import android.util.Log;
 
-public class VoiceAssistantService extends VoiceInteractionService {
+public class TranslateSessionService extends VoiceInteractionSessionService {
 
     @Override
-    public void onCreate() {
-        super.onCreate();
-        Log.d("GOTr", "VoiceAssistantService created");
-    }
-
-    @Override
-    public void onReady() {
-        super.onReady();
-        Log.d("GOTr", "VoiceAssistantService ready");
-        setDisabledShowContext(0);
-    }
-
-    @Override
-    public void onShutdown() {
-        super.onShutdown();
-        Log.d("GOTr", "VoiceAssistantService shutdown");
+    public VoiceInteractionSession onNewSession(Bundle args) {
+        Log.d("GOTr", "Creating new TranslateSession");
+        return new TranslateSession(this);
     }
 }
