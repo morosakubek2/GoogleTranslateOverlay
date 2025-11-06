@@ -3,7 +3,7 @@
     <uses-permission android:name="android.permission.BIND_VOICE_INTERACTION" />
 
     <application>
-        <!-- VoiceInteractionService - tylko do obsługi gestów systemowych -->
+        <!-- VoiceInteractionService -->
         <service
             android:name=".assistant.VoiceAssistantService"
             android:exported="true"
@@ -27,7 +27,7 @@
             </intent-filter>
         </service>
 
-        <!-- AccessibilityService - faktyczna obsługa kopiowania -->
+        <!-- AccessibilityService -->
         <service
             android:name=".assistant.TranslateAccessibilityService"
             android:exported="true"
