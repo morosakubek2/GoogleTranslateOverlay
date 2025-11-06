@@ -4,23 +4,23 @@ import android.service.voice.VoiceInteractionService;
 import android.util.Log;
 
 public class VoiceAssistantService extends VoiceInteractionService {
-    private static final String TAG = "GOTr";
 
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG, "VoiceAssistantService created");
+        Log.d("GOTr", "VoiceAssistantService created");
     }
 
     @Override
     public void onReady() {
         super.onReady();
-        Log.d(TAG, "VoiceAssistantService ready");
+        Log.d("GOTr", "VoiceAssistantService ready");
+        setDisabledShowContext(0);
     }
 
     @Override
     public void onShutdown() {
         super.onShutdown();
-        Log.d(TAG, "VoiceAssistantService shutdown");
+        Log.d("GOTr", "VoiceAssistantService shutdown");
     }
 }
