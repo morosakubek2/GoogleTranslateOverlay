@@ -1,161 +1,62 @@
 package com.google.android.apps.translate.assistant;
 
-import android.accessibilityservice.AccessibilityService;
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.ComponentName;
-import android.content.Context;
+import android.app.Activity;
 import android.content.Intent;
-import android.os.Handler;
-import android.os.Looper;
+import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
-import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityManager;
+import android.accessibilityservice.AccessibilityServiceInfo;
 
-public class TranslateAccessibilityService extends AccessibilityService {
+import java.util.List;
 
-    private static TranslateAccessibilityService instance;
-    private ClipboardManager clipboardManager;
-    private String lastClipboardContent;
-    private long lastClipboardTime;
-    private boolean shouldProcessNextClipboard;
-    private Handler handler;
+public class SetupAssistantActivity extends Activity {
     
-    private static final long CLIPBOARD_TIMEOUT_MS = 1000;
-
     @Override
-    public void onCreate() {
-        super.onCreate();
-        instance = this;
-        clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        handler = new Handler(Looper.getMainLooper());
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         
-        saveCurrentClipboard();
+        Log.d("GOTr", "SetupAssistantActivity started");
         
-        clipboardManager.addPrimaryClipChangedListener(() -> {
-            if (shouldProcessNextClipboard) {
-                handleClipboardChange();
-            }
-        });
-        
-        Log.d("GOTr", "TranslateAccessibilityService created");
-    }
-
-    @Override
-    public void onAccessibilityEvent(AccessibilityEvent event) {
-        // Używane tylko dla utrzymania serwisu
-    }
-
-    @Override
-    public void onInterrupt() {
-        Log.d("GOTr", "TranslateAccessibilityService interrupted");
-    }
-
-    public static void triggerTranslation() {
-        if (instance != null) {
-            instance.performTranslationSequence();
+        if (!isAccessibilityEnabled()) {
+            Log.d("GOTr", "Opening accessibility settings");
+            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+        } else if (!isAssistantEnabled()) {
+            Log.d("GOTr", "Opening voice input settings");
+            startActivity(new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS));
         } else {
-            Log.d("GOTr", "AccessibilityService not available");
+            Log.d("GOTr", "All services enabled");
         }
+        
+        finish();
     }
 
-    private void performTranslationSequence() {
-        Log.d("GOTr", "Starting translation sequence");
+    private boolean isAccessibilityEnabled() {
+        AccessibilityManager am = (AccessibilityManager) getSystemService(ACCESSIBILITY_SERVICE);
+        List<AccessibilityServiceInfo> enabledServices = am.getEnabledAccessibilityServiceList(
+            AccessibilityServiceInfo.FEEDBACK_ALL_MASK
+        );
         
-        saveCurrentClipboard();
-        shouldProcessNextClipboard = true;
-        
-        handler.postDelayed(() -> {
-            shouldProcessNextClipboard = false;
-            Log.d("GOTr", "Translation sequence timeout");
-        }, CLIPBOARD_TIMEOUT_MS);
-        
-        boolean copySuccess = performGlobalAction(GLOBAL_ACTION_COPY);
-        Log.d("GOTr", "Copy action triggered: " + copySuccess);
-    }
-
-    private void saveCurrentClipboard() {
-        if (clipboardManager.hasPrimaryClip()) {
-            ClipData clip = clipboardManager.getPrimaryClip();
-            if (clip != null && clip.getItemCount() > 0) {
-                CharSequence text = clip.getItemAt(0).getText();
-                if (text != null) {
-                    lastClipboardContent = text.toString();
-                    lastClipboardTime = System.currentTimeMillis();
-                }
+        String serviceName = getPackageName() + "/.assistant.TranslateAccessibilityService";
+        for (AccessibilityServiceInfo info : enabledServices) {
+            if (info.getId().equals(serviceName)) {
+                return true;
             }
         }
+        return false;
     }
 
-    private void handleClipboardChange() {
-        shouldProcessNextClipboard = false;
-        handler.removeCallbacksAndMessages(null);
+    private boolean isAssistantEnabled() {
+        String currentAssistant = Settings.Secure.getString(
+            getContentResolver(),
+            "voice_interaction_service"
+        );
         
-        if (!clipboardManager.hasPrimaryClip()) {
-            Log.d("GOTr", "No clipboard content");
-            return;
-        }
-
-        ClipData clip = clipboardManager.getPrimaryClip();
-        if (clip == null || clip.getItemCount() == 0) {
-            Log.d("GOTr", "Empty clipboard");
-            return;
-        }
-
-        CharSequence newText = clip.getItemAt(0).getText();
-        if (newText == null) {
-            Log.d("GOTr", "Null clipboard text");
-            return;
-        }
-
-        String newTextStr = newText.toString().trim();
-        long currentTime = System.currentTimeMillis();
-        
-        if (newTextStr.isEmpty() || newTextStr.length() < 2) {
-            Log.d("GOTr", "Text too short");
-            restoreClipboard();
-            return;
+        if (currentAssistant == null) {
+            return false;
         }
         
-        if (newTextStr.equals(lastClipboardContent)) {
-            Log.d("GOTr", "Same text as before");
-            return;
-        }
-        
-        if (currentTime - lastClipboardTime > CLIPBOARD_TIMEOUT_MS) {
-            Log.d("GOTr", "Clipboard change too old");
-            restoreClipboard();
-            return;
-        }
-        
-        Log.d("GOTr", "Valid new text detected, launching translation");
-        launchTranslation();
-    }
-
-    private void restoreClipboard() {
-        if (lastClipboardContent != null) {
-            ClipData clip = ClipData.newPlainText("restored", lastClipboardContent);
-            clipboardManager.setPrimaryClip(clip);
-            Log.d("GOTr", "Clipboard restored");
-        }
-    }
-
-    private void launchTranslation() {
-        Intent intent = new Intent(Intent.ACTION_PROCESS_TEXT);
-        intent.setType("text/plain");
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.setComponent(new ComponentName(
-            getPackageName(),
-            "com.google.android.apps.translate.copydrop.gm3.TapToTranslateActivity"
-        ));
-        
-        startActivity(intent);
-        Log.d("GOTr", "Translation launched");
-    }
-
-    @Override
-    public void onDestroy() {
-        instance = null;
-        super.onDestroy();
-        Log.d("GOTr", "TranslateAccessibilityService destroyed");
+        String ourService = getPackageName() + "/.assistant.VoiceAssistantService";
+        return currentAssistant.contains(ourService);
     }
 }
