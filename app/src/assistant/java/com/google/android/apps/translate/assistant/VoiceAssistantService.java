@@ -1,5 +1,8 @@
 package com.google.android.apps.translate.assistant;
 
+import android.app.KeyguardManager;
+import android.content.Context;
+import android.os.PowerManager;
 import android.service.voice.VoiceInteractionService;
 import android.util.Log;
 
@@ -18,7 +21,20 @@ public class VoiceAssistantService extends VoiceInteractionService {
         setDisabledShowContext(0);
     }
 
-    // Usuwamy metodę onLaunchVoiceAssistFromKeyguard, ponieważ nie używamy już AccessibilityService
+    @Override
+    public boolean onSupportsAssist() {
+        return true;
+    }
+
+    @Override
+    public boolean onSupportsLaunchVoiceAssistFromKeyguard() {
+        return false;
+    }
+
+    @Override
+    public void launchVoiceAssistFromKeyguard() {
+        Log.d("GOTr", "Voice assist from keyguard blocked");
+    }
 
     @Override
     public void onShutdown() {
