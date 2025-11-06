@@ -32,19 +32,22 @@ public class SetupAssistantActivity extends Activity {
         } else if (Intent.ACTION_ASSIST.equals(action)) {
             Log.d(TAG, "=== ASSISTANT TRIGGERED ===");
             performAutomaticTranslation();
+        } else {
+            Log.d(TAG, "Unknown action: " + action);
+            finish();
         }
-        
-        finish();
     }
 
     private void openVoiceSettings() {
         try {
-            Intent voiceSettings = new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS);
-            startActivity(voiceSettings);
+            Intent intent = new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
             Log.d(TAG, "Opened voice input settings");
         } catch (Exception e) {
-            Log.e(TAG, "Failed to open voice settings, opening general settings", e);
-            startActivity(new Intent(Settings.ACTION_SETTINGS));
+            Log.e(TAG, "Failed to open voice settings", e);
+        } finally {
+            finish();
         }
     }
 
@@ -58,7 +61,6 @@ public class SetupAssistantActivity extends Activity {
     private void attemptAutomaticCopy() {
         Log.d(TAG, "Attempting automatic copy");
         
-        // Używamy AccessibilityService do automatycznego kopiowania
         // Wysyłamy broadcast do TranslateAccessibilityService
         Intent intent = new Intent("PERFORM_AUTO_COPY");
         intent.setPackage(getPackageName());
@@ -83,6 +85,7 @@ public class SetupAssistantActivity extends Activity {
             }
         }
         Log.d(TAG, "No text found in clipboard");
+        finish();
     }
 
     private void launchTranslation(String text) {
@@ -101,6 +104,8 @@ public class SetupAssistantActivity extends Activity {
             Log.d(TAG, "Translation activity launched successfully");
         } catch (Exception e) {
             Log.e(TAG, "Failed to launch translation activity", e);
+        } finally {
+            finish();
         }
     }
 }
