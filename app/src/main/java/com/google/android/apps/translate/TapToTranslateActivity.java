@@ -30,13 +30,12 @@ public class TapToTranslateActivity extends Activity {
 
         if (Intent.ACTION_PROCESS_TEXT.equals(action)) {
             String text = incomingIntent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
+            
             if (TextUtils.isEmpty(text)) {
-                Log.d("GOTr", "No text in PROCESS_TEXT, using clipboard fallback");
-                // Jeśli nie ma tekstu, to może udało się skopiować do schowka?
-                // Ale bez AccessibilityService nie przeczytamy schowka, więc pozostaje tylko uruchomić tłumacza bez tekstu
+                Log.d("GOTr", "PROCESS_TEXT with empty text - launching translator for clipboard");
                 launchOfflineTranslator(null);
             } else {
-                Log.d("GOTr", "Processing text from PROCESS_TEXT: " + text);
+                Log.d("GOTr", "PROCESS_TEXT with text: " + text);
                 launchOfflineTranslator(text);
             }
         } else {
@@ -46,21 +45,18 @@ public class TapToTranslateActivity extends Activity {
     }
 
     private void launchOfflineTranslator(String text) {
-        Intent offlineIntent = new Intent();
+        Intent offlineIntent = new Intent(Intent.ACTION_PROCESS_TEXT);
         offlineIntent.setComponent(new ComponentName(OFFLINE_PACKAGE, OFFLINE_PACKAGE + OFFLINE_PROCESS_ACTIVITY));
-        offlineIntent.setAction(Intent.ACTION_PROCESS_TEXT);
         offlineIntent.setType("text/plain");
+        
         if (!TextUtils.isEmpty(text)) {
             offlineIntent.putExtra(Intent.EXTRA_PROCESS_TEXT, text);
         }
+        
         offlineIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-        try {
-            startActivity(offlineIntent);
-            Log.d("GOTr", "Successfully started offline translator with text: " + text);
-        } catch (Exception e) {
-            Log.e("GOTr", "Failed to start offline translator", e);
-        }
+        startActivity(offlineIntent);
+        Log.d("GOTr", "Successfully started offline translator with text: " + (TextUtils.isEmpty(text) ? "FROM_CLIPBOARD" : text));
     }
 
     private void redirectToOffline(Intent incomingIntent) {
