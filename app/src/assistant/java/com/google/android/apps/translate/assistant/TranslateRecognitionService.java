@@ -7,32 +7,32 @@ public class TranslateRecognitionService extends RecognitionService {
     private static final String TAG = "GOTr";
 
     @Override
+    protected void onStartListening(RecognitionService.Callback callback) {
+        Log.d(TAG, "TranslateRecognitionService: onStartListening");
+        // Pusta implementacja - nie używamy rozpoznawania mowy
+    }
+
+    @Override
+    protected void onStopListening(RecognitionService.Callback callback) {
+        Log.d(TAG, "TranslateRecognitionService: onStopListening");
+        // Pusta implementacja
+    }
+
+    @Override
+    protected void onCancel(RecognitionService.Callback callback) {
+        Log.d(TAG, "TranslateRecognitionService: onCancel");
+        // Pusta implementacja
+    }
+
+    @Override
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "TranslateRecognitionService created");
     }
 
     @Override
-    protected void onStartListening(android.speech.RecognitionListener listener) {
-        Log.d(TAG, "onStartListening - not implemented for translation overlay");
-        // Nie używamy rozpoznawania mowy, więc nic nie robimy
-    }
-
-    @Override
-    protected void onStopListening(android.speech.RecognitionListener listener) {
-        Log.d(TAG, "onStopListening - not implemented for translation overlay");
-        // Nie używamy rozpoznawania mowy, więc nic nie robimy
-    }
-
-    @Override
-    protected void onCancel(android.speech.RecognitionListener listener) {
-        Log.d(TAG, "onCancel - not implemented for translation overlay");
-        // Nie używamy rozpoznawania mowy, więc nic nie robimy
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
+    public void onDestroy() {
         Log.d(TAG, "TranslateRecognitionService destroyed");
+        super.onDestroy();
     }
 }
