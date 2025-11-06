@@ -1,13 +1,12 @@
 package com.google.android.apps.translate.assistant;
 
-import android.app.KeyguardManager;
+import android.accessibilityservice.AccessibilityService;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.PowerManager;
 import android.service.voice.VoiceInteractionSession;
 import android.util.Log;
 
@@ -27,27 +26,10 @@ public class TranslateSession extends VoiceInteractionSession {
         super.onShow(args, showFlags);
         Log.d("GOTr", "onShow called with flags: " + showFlags);
         
-        if (!isDeviceInteractive()) {
-            Log.d("GOTr", "Device not interactive - finishing session");
-            finish();
-            return;
-        }
-        
         saveOriginalClipboard();
-    }
-
-    @Override
-    public void onHandleAssist(Bundle data, android.app.assist.AssistStructure structure, android.app.assist.AssistContent content) {
-        Log.d("GOTr", "=== OUR ASSISTANT TRIGGERED ===");
         
-        if (!isDeviceInteractive()) {
-            Log.d("GOTr", "Device not interactive during assist - aborting");
-            finish();
-            return;
-        }
-        
-        Log.d("GOTr", "Our assistant activated - triggering copy");
-        boolean copySuccess = performGlobalAction(GLOBAL_ACTION_COPY);
+        // Użyj poprawnej stałej z AccessibilityService
+        boolean copySuccess = performGlobalAction(AccessibilityService.GLOBAL_ACTION_COPY);
         
         if (copySuccess) {
             try {
@@ -68,17 +50,6 @@ public class TranslateSession extends VoiceInteractionSession {
         }
         
         finish();
-    }
-
-    private boolean isDeviceInteractive() {
-        PowerManager powerManager = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
-        KeyguardManager keyguardManager = (KeyguardManager) getContext().getSystemService(Context.KEYGUARD_SERVICE);
-        
-        boolean screenOn = powerManager.isInteractive();
-        boolean deviceLocked = keyguardManager.isKeyguardLocked();
-        
-        Log.d("GOTr", "Device state - screenOn: " + screenOn + ", deviceLocked: " + deviceLocked);
-        return screenOn && !deviceLocked;
     }
 
     private void saveOriginalClipboard() {
@@ -110,7 +81,6 @@ public class TranslateSession extends VoiceInteractionSession {
         }
 
         String newTextStr = newText.toString().trim();
-        
         boolean hasNewText = !newTextStr.equals(originalClipboardContent) && 
                            !newTextStr.isEmpty() && 
                            newTextStr.length() > 1;
