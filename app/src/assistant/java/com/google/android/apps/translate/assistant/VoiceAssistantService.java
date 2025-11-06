@@ -1,8 +1,5 @@
 package com.google.android.apps.translate.assistant;
 
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
 import android.service.voice.VoiceInteractionService;
 import android.util.Log;
 
@@ -19,30 +16,25 @@ public class VoiceAssistantService extends VoiceInteractionService {
     public void onReady() {
         super.onReady();
         Log.d(TAG, "VoiceAssistantService ready");
-        setDisabledShowContext(0);
     }
 
+    // Wywoływane gdy użytkownik aktywuje asystenta
     @Override
-    public void launchVoiceAssistFromKeyguard() {
-        Log.d(TAG, "Launching voice assist from keyguard");
-        activateAccessibilityService();
-        super.launchVoiceAssistFromKeyguard();
+    public void onLaunchVoiceAssistFromKeyguard() {
+        Log.d(TAG, "Voice assist launched from keyguard");
+        activateTranslation();
+        super.onLaunchVoiceAssistFromKeyguard();
+    }
+
+    private void activateTranslation() {
+        Log.d(TAG, "Activating translation via accessibility service");
+        // Tutaj możesz dodać kod do komunikacji z AccessibilityService
+        // Na przykład przez broadcast lub bezpośrednie wywołanie
     }
 
     @Override
     public void onShutdown() {
         super.onShutdown();
         Log.d(TAG, "VoiceAssistantService shutdown");
-    }
-
-    private void activateAccessibilityService() {
-        try {
-            Intent intent = new Intent(this, TranslateAccessibilityService.class);
-            intent.setAction("ACTIVATE_ASSISTANT");
-            startService(intent);
-            Log.d(TAG, "Accessibility service activation requested");
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to activate accessibility service", e);
-        }
     }
 }
