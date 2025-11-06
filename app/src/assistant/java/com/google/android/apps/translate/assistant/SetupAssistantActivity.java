@@ -49,10 +49,14 @@ public class SetupAssistantActivity extends Activity {
     private boolean isAssistantEnabled() {
         String currentAssistant = Settings.Secure.getString(
             getContentResolver(),
-            Settings.Secure.VOICE_INTERACTION_SERVICE
+            "voice_interaction_service"
         );
         
+        if (currentAssistant == null) {
+            return false;
+        }
+        
         String ourService = getPackageName() + "/.assistant.VoiceAssistantService";
-        return ourService.equals(currentAssistant);
+        return currentAssistant.contains(ourService);
     }
 }
