@@ -67,14 +67,10 @@ public class TranslateAccessibilityService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        if (!isAssistantSession) {
-            return;
-        }
+        if (!isAssistantSession) return;
 
         long currentTime = System.currentTimeMillis();
-        if (currentTime - lastEventTime < DEBOUNCE_DELAY_MS) {
-            return;
-        }
+        if (currentTime - lastEventTime < DEBOUNCE_DELAY_MS) return;
         lastEventTime = currentTime;
 
         Log.d("GOTr", "Accessibility event: " + event.getEventType() + ", package: " + event.getPackageName());
@@ -82,10 +78,12 @@ public class TranslateAccessibilityService extends AccessibilityService {
         handler.removeCallbacks(timeoutRunnable);
         handler.postDelayed(timeoutRunnable, SESSION_TIMEOUT_MS);
 
-        if (event.getEventType() == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED) {
+        int type = event.getEventType();
+        if (type == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED) {
+            Log.d("GOTr", "TEXT SELECTION CHANGED: start=" + event.getFromIndex() + ", end=" + event.getToIndex());
             processTextSelection(event);
-        } else if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED 
-                || event.getEventType() == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+        } else if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || 
+                   type == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
             Log.d("GOTr", "Window changed – checking selection");
             checkCurrentSelection();
         }
@@ -126,23 +124,16 @@ public class TranslateAccessibilityService extends AccessibilityService {
 
         for (AccessibilityWindowInfo window : windows) {
             AccessibilityNodeInfo root = window.getRoot();
-            if (root == null) {
-                continue;
-            }
+            if (root == null) continue;
 
-            try {
-                Log.d("GOTr", "Checking window: " + root.getPackageName());
-                String selectedText = findSelectedTextInNode(root);
-                if (!TextUtils.isEmpty(selectedText)) {
-                    Log.d("GOTr", "Found current selected text in window: " + selectedText);
-                    redirectToTranslateActivity(selectedText);
-                    endSession();
-                    return;
-                }
-            } catch (Exception e) {
-                Log.e("GOTr", "Error checking window", e);
-            } finally {
-                root.recycle();
+            String selectedText = findSelectedTextInNode(root);
+            root.recycle();
+
+            if (!TextUtils.isEmpty(selectedText)) {
+                Log.d("GOTr", "Found current selected text: " + selectedText);
+                redirectToTranslateActivity(selectedText);
+                endSession();
+                return;
             }
         }
 
@@ -150,89 +141,70 @@ public class TranslateAccessibilityService extends AccessibilityService {
     }
 
     private void processTextSelection(AccessibilityEvent event) {
-        try {
-            String selectedText = findSelectedText(event);
-            if (!TextUtils.isEmpty(selectedText)) {
-                Log.d("GOTr", "Found selected text: " + selectedText);
-                redirectToTranslateActivity(selectedText);
-                endSession();
-            }
-        } catch (Exception e) {
-            Log.e("GOTr", "Error processing text selection", e);
+        String selectedText = findSelectedText(event);
+        if (!TextUtils.isEmpty(selectedText)) {
+            Log.d("GOTr", "Found selected text: " + selectedText);
+            redirectToTranslateActivity(selectedText);
+            endSession();
         }
     }
 
     private String findSelectedText(AccessibilityEvent event) {
         AccessibilityNodeInfo source = event.getSource();
-        if (source == null) {
-            return null;
-        }
-
-        try {
-            return findSelectedTextInNode(source);
-        } finally {
-            source.recycle();
-        }
+        if (source == null) return null;
+        String result = findSelectedTextInNode(source);
+        source.recycle();
+        return result;
     }
 
     private String findSelectedTextInNode(AccessibilityNodeInfo node) {
-        if (node == null) {
-            return null;
-        }
+        if (node == null) return null;
 
-        try {
-            CharSequence text = node.getText();
-            if (text != null) {
-                int start = node.getTextSelectionStart();
-                int end = node.getTextSelectionEnd();
-                
-                if (start >= 0 && end > start && end <= text.length()) {
-                    String selected = text.subSequence(start, end).toString().trim();
-                    if (!TextUtils.isEmpty(selected) && selected.length() > 1) {
-                        Log.d("GOTr", "Text selection found: " + selected + " (full text: " + text + ")"); 
-                        return selected;
-                    }
-                } else if (node.isSelected()) {
-                    Log.d("GOTr", "Node is selected but no start/end – using full text: " + text);
-                    return text.toString().trim();
-                } else {
-                    Log.d("GOTr", "Node has text but no valid selection: " + text); 
+        CharSequence text = node.getText();
+        if (text != null && text.length() > 1) {
+            int start = node.getTextSelectionStart();
+            int end = node.getTextSelectionEnd();
+            if (start >= 0 && end > start && end <= text.length()) {
+                String sel = text.subSequence(start, end).toString().trim();
+                if (!TextUtils.isEmpty(sel) && sel.length() > 1) {
+                    Log.d("GOTr", "Selection via TextSelection: " + sel);
+                    return sel;
                 }
             }
-
-            for (int i = 0; i < node.getChildCount() && i < 50; i++) {
-                AccessibilityNodeInfo child = node.getChild(i);
-                if (child != null) {
-                    String result = findSelectedTextInNode(child);
-                    child.recycle();
-                    if (result != null) {
-                        return result;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            Log.e("GOTr", "Error finding selected text in node", e);
         }
-        
+
+        if (node.isSelected() && text != null && text.length() > 1) {
+            String sel = text.toString().trim();
+            if (!TextUtils.isEmpty(sel)) {
+                Log.d("GOTr", "Selection via isSelected(): " + sel);
+                return sel;
+            }
+        }
+
+        int childCount = node.getChildCount();
+        for (int i = 0; i < childCount && i < 200; i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child != null) {
+                String result = findSelectedTextInNode(child);
+                child.recycle();
+                if (result != null) return result;
+            }
+        }
         return null;
     }
 
     private void redirectToTranslateActivity(String text) {
-        try {
-            Intent intent = new Intent(Intent.ACTION_SEND);
-            intent.setComponent(new ComponentName(
-                getPackageName(),
-                "com.google.android.apps.translate.TranslateActivity"
-            ));
-            intent.setType("text/plain");
-            intent.putExtra(Intent.EXTRA_TEXT, text);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            
-            startActivity(intent);
-            Log.d("GOTr", "Successfully redirected to TranslateActivity");
-        } catch (Exception e) {
-            Log.e("GOTr", "Failed to start TranslateActivity", e);
-        }
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setComponent(new ComponentName(
+            getPackageName(),
+            "com.google.android.apps.translate.TranslateActivity"
+        ));
+        intent.setType("text/plain");
+        intent.putExtra(Intent.EXTRA_TEXT, text);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        
+        startActivity(intent);
+        Log.d("GOTr", "Successfully redirected to TranslateActivity");
     }
 
     @Override
