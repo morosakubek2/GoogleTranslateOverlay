@@ -19,9 +19,35 @@ public class TapToTranslateActivity extends Activity {
 
         Intent incomingIntent = getIntent();
         if (incomingIntent != null) {
-            redirectToOffline(incomingIntent);
+            // Sprawdź, czy to wywołanie z asystenta (bez konkretnego tekstu)
+            if (isFromAssistant(incomingIntent)) {
+                Log.d("GOTr", "Called from assistant - starting PROCESS_TEXT");
+                // Uruchom PROCESS_TEXT, aby użytkownik mógł wybrać tekst
+                startProcessText();
+            } else {
+                redirectToOffline(incomingIntent);
+            }
         }
         finish();
+    }
+
+    private boolean isFromAssistant(Intent intent) {
+        // Sprawdź, czy to wywołanie z asystenta (np. brak EXTRA_PROCESS_TEXT)
+        return !intent.hasExtra(Intent.EXTRA_PROCESS_TEXT);
+    }
+
+    private void startProcessText() {
+        Intent processTextIntent = new Intent(Intent.ACTION_PROCESS_TEXT);
+        processTextIntent.setType("text/plain");
+        processTextIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        // Ustaw naszą aplikację jako handler, abyśmy mogli przechwycić wynik
+        processTextIntent.setComponent(new ComponentName(
+            getPackageName(),
+            "com.google.android.apps.translate.copydrop.gm3.TapToTranslateActivity"
+        ));
+
+        startActivity(processTextIntent);
     }
 
     private void redirectToOffline(Intent incomingIntent) {
@@ -31,11 +57,10 @@ public class TapToTranslateActivity extends Activity {
         offlineIntent.setComponent(new ComponentName(OFFLINE_PACKAGE, OFFLINE_PACKAGE + OFFLINE_PROCESS_ACTIVITY));
 
         String action = incomingIntent.getAction();
-        if ("android.intent.action.PROCESS_TEXT".equals(action) || "android.intent.action.PROCESS_TEXT_READONLY".equals(action)) {
+        if ("android.intent.action.PROCESS_TEXT".equals(action)) {
             String processText = incomingIntent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
             if (!TextUtils.isEmpty(processText)) {
                 offlineIntent.putExtra(Intent.EXTRA_PROCESS_TEXT, processText);
-                offlineIntent.putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, incomingIntent.getBooleanExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, false));
                 Log.d("GOTr", "Processing text: " + processText);
             }
         }
